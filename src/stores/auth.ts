@@ -2,29 +2,40 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-    // 狀態：從 LocalStorage 初始化，確保重新整理頁面後登入還在
+    // 直接從 localStorage 初始化，避免初次渲染為 0
     const token = ref(localStorage.getItem('token') || '')
     const userName = ref(localStorage.getItem('userName') || '')
 
-    // 計算屬性：是否已登入
+    // 修正點：直接在這裡初始化 balance
+    const balance = ref<number>(Number(localStorage.getItem('balance')) || 0)
+
     const isLoggedIn = computed(() => !!token.value)
 
-    // 動作：登入成功時呼叫
-    function login(newToken: string, name: string,avatarUrl: string) {
+    function login(newToken: string, name: string, avatarUrl: string, userBalance: number) {
         token.value = newToken
         userName.value = name
+        balance.value = Number(userBalance)||0
+
         localStorage.setItem('token', newToken)
         localStorage.setItem('userName', name)
-        localStorage.setItem('userAvatar',avatarUrl || '')
+        localStorage.setItem('userAvatar', avatarUrl || '')
+        // 確保存入的是字串
+        localStorage.setItem('balance', userBalance.toString())
     }
 
-    // 動作：登出
     function logout() {
         token.value = ''
         userName.value = ''
-        localStorage.removeItem('token')
-        localStorage.removeItem('userName')
+        balance.value = 0 // 登出也要清空狀態
+        localStorage.clear() // 或者逐項 removeItem
     }
 
-    return { token, userName, isLoggedIn, login, logout }
+    // 這個方法可以保留，用來手動從伺服器同步最新餘額，而不是只讀本地緩存
+    async function refreshBalance() {
+        // 這裡通常會串接 API 取得最新餘額
+        // const res = await getProfile()
+        // balance.value = res.data.balance
+    }
+
+    return { token, userName, isLoggedIn, login, logout, balance, refreshBalance }
 })

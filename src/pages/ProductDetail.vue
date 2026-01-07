@@ -129,25 +129,46 @@ const buyNow = () => {
 
 .add-cart, .buy-now {
   flex: 1;
-  padding: 15px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
+  padding: 14px 15px;  /* 🎯 跟 submit-btn 一樣的 padding */
+  border-radius: 15px;
+  font-size: 17px;  /* 🎯 改成 17px */
+  font-weight: 800;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.3s ease;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 25px rgba(251, 114, 153, 0.25);
 }
 
 .add-cart {
-  background: #ffeef2;
+  background: linear-gradient(135deg, #ffeef2 0%, #fff5f7 100%);
   color: #fb7299;
-  border: 1px solid #fb7299;
+  border: 2px solid #fb7299;
+}
+
+.add-cart:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(251, 114, 153, 0.35);
+  background: linear-gradient(135deg, #fff5f7 0%, #ffffff 100%);
+  border-color: #ff85a2;  /* 🎯 新增:hover 時邊框顏色變淺 */
 }
 
 .buy-now {
-  background: #fb7299;
+  background: linear-gradient(135deg, #fb7299 0%, #ff92ae 100%);
   color: white;
   border: none;
 }
+
+.buy-now:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(251, 114, 153, 0.45);
+}
+
+/* 🎯 新增:按下去的效果 */
+.add-cart:active, .buy-now:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(251, 114, 153, 0.3);
+}
+
 
 .back-link {
   background: none;

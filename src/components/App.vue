@@ -85,28 +85,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from "vue-router";
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthStore();
 
-// --- 狀態控制修正 ---
-// 1. 初始化時，直接從 localStorage 讀取狀態
-const isLoggedIn = ref(!!localStorage.getItem('token'));
-const currentUserName = ref(localStorage.getItem('userName') || '訪客');
+// 使用 computed 從 store 取得狀態（響應式）
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+const currentUserName = computed(() => authStore.userName || '訪客');
 const currentUserAvatar = ref(localStorage.getItem('userAvatar') || '');
-
 
 const isOpen = ref(false);
 const selectCategory = ref('全站');
 const categories = ['全站', '周邊', '食品', '紀念品'];
 
-// 2. 監聽路由變化
-// 這是「不使用 Pinia」的最直接做法：每次切換頁面（例如登入完跳轉回首頁）時，強制檢查一次狀態
+// 監聽路由變化時更新頭像
 watch(() => route.path, () => {
-  isLoggedIn.value = !!localStorage.getItem('token');
-  currentUserName.value = localStorage.getItem('userName') || 'MOMO';
+  currentUserAvatar.value = localStorage.getItem('userAvatar') || '';
 });
 
 const handleSelect = (category: string) => {
@@ -122,27 +120,30 @@ const navigateTo = (path: string) => {
   router.push(path);
 };
 
-// 3. 修改登出邏輯：清除 localStorage
+// 登出邏輯：使用 store 的 logout
 const handleLogout = () => {
   if (confirm('確定要登出嗎？')) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
-    isLoggedIn.value = false;
+    authStore.logout();
     router.push('/login');
   }
 };
+
+// 初始化時讀取 balance 和監聽事件
 onMounted(() => {
+  // authStore.initializeAuth();
+
   window.addEventListener('user-data-updated', () => {
-    currentUserName.value = localStorage.getItem('userName') || '訪客';
     currentUserAvatar.value = localStorage.getItem('userAvatar') || '';
   });
 });
+
 const getImageUrl = (path: string) => {
   if (!path) return 'https://i.imgur.com/6VBx3io.png';
   if (path.startsWith('blob:') || path.startsWith('data:')) return path;
   return `http://localhost:5275${path}`;
 };
 </script>
+
 
 <style scoped>
 /* 保持妳原本漂亮的 CSS 不變 */
@@ -278,6 +279,6 @@ const getImageUrl = (path: string) => {
 .logout-item { padding-top: 15px; color: #9499a0; font-size: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
 .logout-item:hover { color: #fb7299; }
 
-.main-content { padding-top: 84px; }
+.main-content { padding-top: 64px; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 </style>

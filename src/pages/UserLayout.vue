@@ -31,7 +31,7 @@
             <i class="icon-dot"></i>
             <span class="menu-text">賣場管理</span>
           </router-link>
-          <router-link to="/user/shops" class="menu-item">
+          <router-link to="/user/balance" class="menu-item">
             <i class="icon-dot"></i>
             <span class="menu-text">錢包管理</span>
           </router-link>

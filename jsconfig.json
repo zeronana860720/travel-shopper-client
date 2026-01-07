@@ -2,7 +2,8 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["google.maps"]
   },
   "exclude": ["node_modules", "dist"]
 }

@@ -68,6 +68,11 @@ const routes:RouteRecordRaw[] = [
                 name: 'UserCommissions',
                 component: () => import('../pages/user/ShopView.vue')
             },
+            {
+                path:'balance',
+                name:'UserBalance',
+                component:()=>import('../pages/user/CashFlow.vue')
+            }
 
         ]
     }

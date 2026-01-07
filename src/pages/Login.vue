@@ -44,40 +44,42 @@ const form = ref({
   password: ''
 })
 
-const handleLogin = async () => {
+
+const handleLogin2 = async() => {
   loading.value = true
   try {
-    const res = await axios.post('http://localhost:5275/api/Auth/login', form.value)
+    console.log('發送登入請求:', form.value)
 
-    // 關鍵：呼叫倉庫的 login 方法，這會讓全專案都知道 MOMO 登入了
-    authStore.login(res.data.token, res.data.name)
+    const res = await api.post('/api/Auth/login', form.value)
 
-    alert(`歡迎回來，${res.data.name}！`)
+    // 確保 balance 有值（防禦性編程）
+    // 如果有就賦值 沒有就給0
+    const balance = res.data.balance ?? 0
+    console.log(res.data)
+
+    authStore.login(
+        res.data.token,
+        res.data.name,
+        res.data.avatar,
+        balance,
+    )
+    console.log('後端物件',JSON.stringify(res.data, null, 2))
+    // alert(`歡迎回來，${res.data.name}！`)
+    // alert 太醜了
     await router.push('/products')
-  } catch (err: any) {
-    alert('登入失敗')
+  }
+  catch (err: any) {
+    console.error('登入失敗')
+    console.error('完整錯誤:', err)
+
+    const errorMsg = err.response?.data || err.message || '帳號或密碼錯誤'
+    alert('登入失敗: ' + errorMsg)
   } finally {
     loading.value = false
   }
 }
 
-const handleLogin2 = async()=>{
-  loading.value = true
-  try{
-    // api 替代axios
-    const res = await api.post('/api/Auth/login', form.value)
-    authStore.login(res.data.token, res.data.name,res.data.avatar)
-    // 呼叫auth.store裡面的login方法
-    // alert('歡迎回來')
-    await router.push('/products')
-    console.log(res)
-  }
-  catch (err: any) {
-    alert('登入失敗'+err.response?.data||'帳號或密碼錯誤')
-  }finally {
-    loading.value = false
-  }
-}
+
 </script>
 
 <style scoped>
