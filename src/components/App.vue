@@ -1,7 +1,7 @@
 <template>
   <nav class="bili-nav">
     <div class="nav-left-group">
-      <div class="logo-wrapper" @click="router.push('/products')">
+      <div class="logo-wrapper" @click="router.push('/')">
         <img src="@/assets/everett.png" alt="logo" class="logo-img">
         <span class="logo-text">demo</span>
       </div>

@@ -3,7 +3,7 @@
     <div class="form-section">
       <div class="commission-card">
         <h2 class="form-title">發佈新委託</h2>
-        <p class="form-subtitle">填寫您想要尋找的日本商品資訊</p>
+<!--        <p class="form-subtitle">填寫您想要尋找的日本商品資訊</p>-->
 
         <form @submit.prevent="handleSubmit">
 <!--          submit.prevent
@@ -15,15 +15,59 @@
             <input type="text" v-model="form.itemName" placeholder="例如:限定版皮卡丘娃娃" required>
 <!--            v-model -> 雙向綁定-->
           </div>
+          <div class="form-group">
+            <label>商品分類</label>
+            <select v-model="form.category" class="custom-select" required>
+              <option value="" disabled selected>請選擇商品分類</option>
+              <option value="玩具公仔">玩具公仔</option>
+              <option value="動漫周邊">動漫周邊</option>
+              <option value="服飾配件">服飾配件</option>
+              <option value="美妝保養">美妝保養</option>
+              <option value="食品零食">食品零食</option>
+              <option value="文具雜貨">文具雜貨</option>
+              <option value="電子產品">電子產品</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
 
           <div class="form-group">
-            <label>商品原價 (預估台幣或日幣)</label>
-            <input type="number" v-model="form.price" placeholder="請輸入預計價格" required>
+            <label>商品原價</label>
+            <select v-model="form.currency" class="currency-select">
+              <option value="JPY">JPY</option>
+              <option value="TWD">TWD</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="KRW">KRW</option>
+            </select>
+            <input type="number" v-model="form.price"  class="price" placeholder="請輸入預計價格" required>
+          </div>
+          <div v-if="form.price && form.currency !== 'TWD'" class="converted-price">
+            ≈ NT$ {{ convertedPrice}}
+          </div>
+          <div class="form-group">
+            <label>購買數量</label>
+            <div class="quantity-control">
+              <button type="button" class="quantity-btn minus-btn" @click="decreaseQty">−</button>
+              <input type="number" v-model.number="form.quantity" class="quantity-input" min="1" readonly>
+              <button type="button" class="quantity-btn plus-btn" @click="addQty">+</button>
+            </div>
           </div>
 
           <div class="form-group">
             <label>參考購買地點</label>
             <input ref="locationInputRef" type="text" v-model="form.location" placeholder="搜尋地點,例如:東京澀谷 Pokemon Center" required>
+          </div>
+          <div class="form-group">
+            <label>商品描述</label>
+            <textarea
+                v-model="form.description"
+                class="custom-textarea"
+                maxlength="200"
+                rows="4"
+                placeholder="請詳細描述商品特徵、顏色、尺寸等資訊"
+                required
+            ></textarea>
+            <small class="char-count">{{ form.description.length }} / 200 字</small>
           </div>
 
           <div class="form-group">
@@ -32,10 +76,10 @@
               <input type="file" accept="image/*" @change="handleImageUpload" ref="fileInputRef" style="display: none">
               <div v-if="!imagePreview" class="upload-placeholder" @click="() => fileInputRef?.click()">
                 <span class="plus-icon">+</span>
-                <span>上傳參考圖片</span>
+<!--                <span class="plus-text"></span>-->
               </div>
               <div v-else class="image-preview-wrapper">
-                <img :src="getImageUrl(cachedData.name)" class="preview-img" alt="nnn">
+                <img :src="getImageUrl(cachedData.avatar)" class="preview-img" alt="nnn">
                 <button type="button" class="remove-btn" @click="removeImage">✕</button>
               </div>
             </div>
@@ -70,7 +114,7 @@
 
 <script setup lang="ts">
 // 引入需要的功能
-import {ref as vueRef, onMounted} from 'vue';
+import {ref as vueRef, onMounted, computed} from 'vue';
 // as vueRef -> googleMap 也有ref怕命名搞混
 // 路由器
 import { useRouter } from 'vue-router';
@@ -79,6 +123,22 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import axios from "axios";
 // setOptions -> 設定金鑰...
 // importLibrary -> 動態載入googleMap的各項功能
+
+// 匯率
+const exchangeRate = vueRef({
+  JPY:0.201,
+  TWD:1,
+  USD:32.5,
+  EUR:35.2,
+  KRW:0.024,
+})
+
+const convertedPrice = computed(()=>{
+  if (!form.value.price || !form.value.currency) return 0;
+  const rate = exchangeRate.value[form.value.currency as keyof typeof exchangeRate.value];
+  return (form.value.price * rate).toFixed(2);
+  // 計算到小數點第二位
+})
 
 const fileInputRef = vueRef<HTMLInputElement | null>(null);
 
@@ -93,8 +153,21 @@ const form = vueRef({
   itemName: '',
   price: null,
   location: '',
-  endDate: ''
+  endDate: '',
+  quantity:1, // 預設數量1
+  description: '',
+  category:'',
+  currency:'JPY'
 });
+
+const addQty = ()=>{
+  form.value.quantity++;
+}
+const decreaseQty = ()=>{
+  if (form.value.quantity >= 1) {
+    form.value.quantity--;
+  }
+}
 // 建立一個響應式物件
 const avatar = vueRef('')
 
@@ -399,8 +472,8 @@ body {
 }
 
 .upload-container {
-  width: 150px;
-  height: 150px;
+  width: 70px;
+  height: 70px;
   border: 3px dashed #cbd5e0;
   border-radius: 18px;
   display: flex;
@@ -419,7 +492,8 @@ body {
 }
 
 .plus-icon {
-  font-size: 32px;
+  font-size: 50px;
+  place-items: center;
   color: #a0aec0;
   margin-bottom: 6px;
 }
@@ -616,4 +690,265 @@ body {
 .form-section::-webkit-scrollbar-thumb:hover {
   background: #fb7299;
 }
+/* 🎀 改良版數量控制器樣式 */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: fit-content;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+.quantity-control:hover {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+}
+
+.quantity-btn {
+  width: 40px;  /* ✨ 從 45px 改成 40px */
+  height: 40px;  /* ✨ 從 45px 改成 40px */
+  border: none;  /* ✨ 移除所有邊框 */
+  background: linear-gradient(135deg, #fb7299 0%, #ff92ae 100%);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-btn:hover {
+  background: linear-gradient(135deg, #ff92ae 0%, #fb7299 100%);
+  transform: scale(1.05);
+}
+
+.quantity-btn:active {
+  transform: scale(0.95);
+}
+
+/* ✨ 完全移除中間分隔線 */
+.minus-btn {
+  /* 不需要 border-right 了 */
+}
+
+.plus-btn {
+  /* 不需要 border-left 了 */
+}
+
+.quantity-input {
+  width: 100px !important;
+  height: 40px;  /* ✨ 從 45px 改成 40px */
+  text-align: center;
+  border: none !important;  /* ✨ 移除邊框 */
+  outline: none !important;  /* ✨ 移除 focus 時的藍框 */
+  font-size: 17px;
+  font-weight: 700;
+  color: #2c3e50;
+  background-color: #fff;
+  padding: 0;
+  cursor: default;
+}
+
+/* 移除數字輸入框的上下箭頭 */
+.price::-webkit-inner-spin-button,
+.price::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantity-input {
+  -moz-appearance: textfield;
+}
+
+/* ✨ 移除 focus 時的任何外框 */
+.quantity-input:focus {
+  outline: none;
+  border: none;
+}
+/* 🎀 自訂下拉選單樣式 */
+.custom-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #2c3e50;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* 移除預設箭頭 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* 自訂箭頭 */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fb7299' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 40px;
+}
+
+.custom-select:hover {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+}
+
+.custom-select:focus {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+  outline: none;
+}
+
+.custom-select option {
+  padding: 10px;
+  font-size: 14px;
+}
+
+/* 🎀 多行文字輸入框樣式 */
+.custom-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #2c3e50;
+  background-color: #fff;
+  font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  resize: vertical;  /* 只能垂直調整大小 */
+  min-height: 100px;
+  max-height: 300px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  line-height: 1.6;
+}
+
+.custom-textarea:hover {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+}
+
+.custom-textarea:focus {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+  outline: none;
+}
+
+.custom-textarea::placeholder {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+/* 🎀 字數統計樣式 */
+.char-count {
+  display: block;
+  margin-top: 6px;
+  color: #7f8c8d;
+  font-size: 12px;
+  text-align: right;
+  font-style: italic;
+}
+/* 🎀 價格輸入組合樣式 */
+.price-input-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* 🎀 幣別下拉選單 */
+.currency-select {
+  width: 120px;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c3e50;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fb7299' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+  padding-right: 35px;
+}
+
+.currency-select:hover {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+}
+
+.currency-select:focus {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+  outline: none;
+}
+
+/* 🎀 價格輸入框 */
+.price-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #2c3e50;
+  background-color: #fff;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.price-input:hover {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+}
+
+.price-input:focus {
+  border-color: #fb7299;
+  box-shadow: 0 0 0 4px rgba(251, 114, 153, 0.15);
+  outline: none;
+}
+
+
+.price-input {
+  -moz-appearance: textfield;
+}
+
+/* 🎀 換算後台幣價格樣式 */
+.converted-price {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fff5f7 0%, #ffe8f0 100%);
+  border-left: 3px solid #fb7299;
+  border-radius: 8px;
+  color: #fb7299;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 </style>
