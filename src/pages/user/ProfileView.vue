@@ -117,9 +117,11 @@ const editData = reactive({
 });
 
 // 用於取消編輯時還原資料
+// ... -> 展開資料
 let backupData = { ...editData };
 
 // --- 步驟：初始化抓取後端資料 ---
+// 啟動時使用的鉤子
 onMounted(async () => {
   try {
     const token = localStorage.getItem('token');
