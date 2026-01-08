@@ -2,9 +2,15 @@ import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
 import Product from "@/pages/Product.vue";
 import Register from "@/pages/Register.vue";
 import Login from "@/pages/Login.vue";
+import HomePage from "@/pages/HomePage.vue";
 
 
 const routes:RouteRecordRaw[] = [
+    {
+        path:'/homepage',
+        name:'Homepage',
+        component:HomePage,
+    },
     {
         path:'/products',
         name:'Product',
