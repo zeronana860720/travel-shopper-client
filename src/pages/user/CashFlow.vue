@@ -24,7 +24,7 @@
         </div>
         <div class="balance-card">
           <div class="balance-label">圈存金額</div>
-          <div class="balance-amount">NT$ {{ reservedBalance.toLocaleString() }}</div>
+          <div class="balance-amount">NT$ {{ escrowBalance.toLocaleString() }}</div>
         </div>
       </div>
 
@@ -40,7 +40,7 @@
             NT$ {{ amount.toLocaleString() }}
           </button>
         </div>
-        <button class="action-btn">
+        <button class="action-btn" @click="onDeposit">
           確認儲值
         </button>
       </div>
@@ -55,7 +55,7 @@
         </div>
         <div class="balance-card">
           <div class="balance-label">未實現收益</div>
-          <div class="balance-amount">NT$ {{ unrealizedIncome.toLocaleString() }}</div>
+          <div class="balance-amount">NT$ {{ escrowBalance.toLocaleString() }}</div>
         </div>
       </div>
 
@@ -110,14 +110,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import {useWallet} from "@/composable/useWallet";
 
+const {
+  availableBalance,
+  escrowBalance,
+  isLoading,
+  error,
+  fetchWallet,
+  handleDeposit
+} = useWallet();
 const currentMode = ref<'deposit' | 'withdraw'>('deposit');
 const authStore = useAuthStore();
 
-// ⭐ 這裡不用變，computed 會自動追蹤 authStore.balance 的變化
-const availableBalance = computed(() => {
-  return authStore.balance;
-});
 
 const reservedBalance = ref(0);
 const unrealizedIncome = ref(8960);
@@ -131,9 +136,22 @@ const withdrawForm = ref({
   password: ''
 });
 
+const onDeposit = async() => {
+    if(!selectedAmount.value){
+      console.log('儲值金額',selectedAmount.value);
+      alert('請選擇儲值金額')
+    }
+    const success  = await handleDeposit(selectedAmount.value!);
+  if (success) {
+    alert('儲值成功!');
+    selectedAmount.value = null;
+  } else {
+    alert('儲值失敗,請稍後再試');
+  }
+}
 onMounted(() => {
   // 頁面載入時，如果需要可以再刷一次最新的數據（例如從 API 獲取）
-  console.log('💰 當前 Store 中的餘額:', authStore.balance);
+  fetchWallet()
 });
 </script>
 

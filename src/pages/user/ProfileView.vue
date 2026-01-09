@@ -125,6 +125,7 @@ let backupData = { ...editData };
 onMounted(async () => {
   try {
     const token = localStorage.getItem('token');
+    console.log(token)
     const res = await axios.get('/api/Auth/profile', {
       headers: { Authorization: `Bearer ${token}` }
     });

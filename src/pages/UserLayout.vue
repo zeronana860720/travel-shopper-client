@@ -31,10 +31,24 @@
             <i class="icon-dot"></i>
             <span class="menu-text">賣場管理</span>
           </router-link>
-          <router-link to="/user/balance" class="menu-item">
-            <i class="icon-dot"></i>
-            <span class="menu-text">錢包管理</span>
-          </router-link>
+          <div class="menu-group">
+            <div class="menu-item" @click="toggleWallet">
+              <i class="icon-dot"></i>
+              <span class="menu-text">錢包總覽</span>
+              <i class="arrow-icon" :class="{ expanded: isWalletOpen }">▼</i>
+            </div>
+
+            <div v-show="isWalletOpen" class="sub-menu">
+              <router-link to="/user/balance" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">錢包管理</span>
+              </router-link>
+              <router-link to="/user/balance/history" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">錢包紀錄</span>
+              </router-link>
+            </div>
+          </div>
         </nav>
 
         <div class="logout-section">
@@ -60,8 +74,12 @@ const router = useRouter();
 const currentUserName = ref(localStorage.getItem('userName'));
 // const currentUserName = ref(localStorage.getItem('userName') || '訪客');
 const currentUserAvatar = ref(localStorage.getItem('userAvatar') || '');
+const isWalletOpen = ref(false);
 
 
+const toggleWallet = () => {
+  isWalletOpen.value = !isWalletOpen.value;
+}
 const handleLogout = () => {
   if (confirm('確定要登出嗎？')) {
     router.push('/products');
@@ -254,4 +272,53 @@ html, body {
   flex-direction: column;
   justify-content: center;
 }
+/* 錢包選單群組 */
+.menu-group {
+  margin-bottom: 5px;
+}
+
+/* 箭頭圖示 */
+.arrow-icon {
+  margin-left: auto;
+  font-size: 10px;
+  color: #999;
+  transition: transform 0.3s ease;
+}
+
+.arrow-icon.expanded {
+  transform: rotate(-180deg);
+}
+
+/* 子選單容器 */
+.sub-menu {
+  overflow: hidden;
+}
+
+/* 子選單項目 */
+.sub-menu-item {
+  padding-left: 38px !important;
+  font-size: 13px;
+  color: #888;
+}
+
+.sub-menu-item .icon-dot {
+  width: 4px;
+  height: 4px;
+}
+
+.sub-menu-item:hover {
+  background-color: #fff0f3;
+  color: #fb7299;
+}
+
+.sub-menu-item.router-link-active {
+  background-color: #ffebf0 !important;
+  color: #fb7299 !important;
+  font-weight: 600;
+}
+
+.sub-menu-item.router-link-active .icon-dot {
+  background-color: #fb7299;
+}
+
 </style>
