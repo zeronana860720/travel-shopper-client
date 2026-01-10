@@ -78,6 +78,11 @@ const routes:RouteRecordRaw[] = [
                 path:'balance',
                 name:'UserBalance',
                 component:()=>import('../pages/user/CashFlow.vue')
+            },
+            {
+                path:'walletLogs',
+                name:'WalletLogs',
+                component:()=>import('../pages/user/WalletLogs.vue')
             }
 
         ]

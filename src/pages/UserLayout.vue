@@ -43,7 +43,7 @@
                 <i class="icon-dot"></i>
                 <span class="menu-text">錢包管理</span>
               </router-link>
-              <router-link to="/user/balance/history" class="menu-item sub-menu-item">
+              <router-link to="/user/walletLogs" class="menu-item sub-menu-item">
                 <i class="icon-dot"></i>
                 <span class="menu-text">錢包紀錄</span>
               </router-link>

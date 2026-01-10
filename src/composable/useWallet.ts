@@ -1,11 +1,12 @@
 import {ref} from "vue";
-import {depositMoney, getWalletInfo} from "@/api/wallet";
+import {depositMoney, getWalletInfo, getWalletLogs} from "@/api/wallet";
 
 export const useWallet = () => {
     const availableBalance = ref(0)
     const escrowBalance = ref(0)
     const isLoading = ref(false)
     const error = ref<string|null>(null)
+    const walletLogs = ref<any[]>([])
 
     // 取得錢包資料
     const fetchWallet = async () => {
@@ -36,6 +37,7 @@ export const useWallet = () => {
         try{
             await depositMoney(amount);
             await fetchWallet()
+            await fetchWalletLogs()
             return true
         }
         catch (err:any){
@@ -45,11 +47,19 @@ export const useWallet = () => {
             isLoading.value = false
         }
     }
-
+    const fetchWalletLogs = async()=>{
+        try{
+            walletLogs.value = await getWalletLogs()
+        }catch(err:any){
+            console.error(err)
+        }
+    }
     return {
         availableBalance,
         escrowBalance,
         isLoading,error,
+        walletLogs,
         fetchWallet,
-        handleDeposit,}
+        handleDeposit,
+    fetchWalletLogs,}
 }

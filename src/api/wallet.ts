@@ -22,3 +22,12 @@ export const depositMoney = async(amount:number)=>{
         {headers: {Authorization: `Bearer ${token}`}
     })
 }
+
+// 獲取錢包紀錄
+export const getWalletLogs = async () => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`http://localhost:5275/api/Wallet/logs`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+}
