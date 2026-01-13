@@ -98,7 +98,7 @@
               placeholder="請輸入密碼確認"
           >
         </div>
-        <button class="action-btn">
+        <button class="action-btn" @click="onWithdraw">
           確認提現
         </button>
       </div>
@@ -118,7 +118,8 @@ const {
   isLoading,
   error,
   fetchWallet,
-  handleDeposit
+  handleDeposit,
+  handleWithdraw,
 } = useWallet();
 const currentMode = ref<'deposit' | 'withdraw'>('deposit');
 const authStore = useAuthStore();
@@ -147,6 +148,26 @@ const onDeposit = async() => {
     selectedAmount.value = null;
   } else {
     alert('儲值失敗,請稍後再試');
+  }
+}
+
+const onWithdraw = async() => {
+  // 轉換金額為數字
+  const amount = Number(withdrawForm.value.amount);
+
+  const success = await handleWithdraw(amount);
+
+  if (success) {
+    alert('提現成功!');
+    // 清空表單
+    withdrawForm.value = {
+      bankCode: '',
+      bankAccount: '',
+      amount: '',
+      password: ''
+    };
+  } else {
+    alert(error.value || '提現失敗,請稍後再試');
   }
 }
 onMounted(() => {

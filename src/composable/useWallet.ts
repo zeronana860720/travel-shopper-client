@@ -1,5 +1,5 @@
 import {ref} from "vue";
-import {depositMoney, getWalletInfo, getWalletLogs} from "@/api/wallet";
+import {depositMoney, getWalletInfo, getWalletLogs,withdrawMoney} from "@/api/wallet";
 
 export const useWallet = () => {
     const availableBalance = ref(0)
@@ -27,6 +27,7 @@ export const useWallet = () => {
         }
 
     }
+    // 儲值
     const handleDeposit = async (amount:number) => {
         if(amount < 0){
             error.value = '金額必須大於0'
@@ -47,6 +48,30 @@ export const useWallet = () => {
             isLoading.value = false
         }
     }
+    // 提現
+    const handleWithdraw = async (amount:number) => {
+        if(amount < 0){
+            error.value = '金額必須大於0'
+            return false;
+        }
+        if (availableBalance.value < amount) {
+            error.value = '餘額不足,無法提現';
+            return false;
+        }
+        isLoading.value = true
+        error.value =null
+        try {
+            await withdrawMoney(amount);
+            await fetchWallet();
+            await fetchWalletLogs();
+            return true;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || '提現失敗';
+            return false;
+        } finally {
+            isLoading.value = false;
+        }
+    }
     const fetchWalletLogs = async()=>{
         try{
             walletLogs.value = await getWalletLogs()
@@ -61,5 +86,6 @@ export const useWallet = () => {
         walletLogs,
         fetchWallet,
         handleDeposit,
-    fetchWalletLogs,}
+    fetchWalletLogs,
+    handleWithdraw,}
 }

@@ -31,3 +31,13 @@ export const getWalletLogs = async () => {
     });
     return response.data;
 }
+
+// 提現
+export const withdrawMoney = async(amount:number)=>{
+    const token = localStorage.getItem("token");
+    const response = await axios.post(`http://localhost:5275/api/Wallet/withdraw`,
+        {amount:amount},
+        {headers: {Authorization: `Bearer ${token}`}
+    })
+    return response.data;
+}
