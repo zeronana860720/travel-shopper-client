@@ -52,6 +52,9 @@ const handleLogin2 = async() => {
 
     const res = await api.post('/api/Auth/login', form.value)
 
+    // console.log('完整後端回應:', JSON.stringify(res.data, null, 2));
+    // console.log('res.data.userId:', res.data.userId);
+    // console.log('res.data.Uid:', res.data.Uid);
     // 確保 balance 有值（防禦性編程）
     // 如果有就賦值 沒有就給0
     const balance = res.data.balance ?? 0
@@ -62,6 +65,7 @@ const handleLogin2 = async() => {
         res.data.name,
         res.data.avatar,
         balance,
+        res.data.userId,
     )
     console.log('後端物件',JSON.stringify(res.data, null, 2))
     // alert(`歡迎回來，${res.data.name}！`)

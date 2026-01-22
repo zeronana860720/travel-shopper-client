@@ -128,7 +128,7 @@ onMounted(async () => {
     const res = await axios.get('/api/Auth/profile', {
       headers: { Authorization: `Bearer ${token}` }
     });
-
+    console.log(res.data);
     // 將後端資料填入畫面
     Object.assign(editData, res.data);
     avatarPreview.value = res.data.avatar || '';

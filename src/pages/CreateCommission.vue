@@ -3,18 +3,13 @@
     <div class="form-section">
       <div class="commission-card">
         <h2 class="form-title">發佈新委託</h2>
-<!--        <p class="form-subtitle">填寫您想要尋找的日本商品資訊</p>-->
 
         <form @submit.prevent="handleSubmit">
-<!--          submit.prevent
-              @submit -> 監聽表單提交事件
-              .prevent 阻止表單的預設行為(不會重新整理頁面!)
--->
           <div class="form-group">
             <label>委託商品名稱</label>
             <input type="text" v-model="form.itemName" placeholder="例如:限定版皮卡丘娃娃" required>
-<!--            v-model -> 雙向綁定-->
           </div>
+
           <div class="form-group">
             <label>商品分類</label>
             <select v-model="form.category" class="custom-select" required>
@@ -32,18 +27,21 @@
 
           <div class="form-group">
             <label>商品原價</label>
-            <select v-model="form.currency" class="currency-select">
-              <option value="JPY">JPY</option>
-              <option value="TWD">TWD</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="KRW">KRW</option>
-            </select>
-            <input type="number" v-model="form.price"  class="price" placeholder="請輸入預計價格" required>
+            <div class="price-input-group">
+              <select v-model="form.currency" class="currency-select">
+                <option value="JPY">JPY</option>
+                <option value="TWD">TWD</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="KRW">KRW</option>
+              </select>
+              <input type="number" v-model="form.price" class="price" placeholder="請輸入預計價格" required>
+            </div>
           </div>
           <div v-if="form.price && form.currency !== 'TWD'" class="converted-price">
-            ≈ NT$ {{ convertedPrice}}
+            ≈ NT$ {{ convertedPrice }}
           </div>
+
           <div class="form-group">
             <label>購買數量</label>
             <div class="quantity-control">
@@ -57,6 +55,7 @@
             <label>參考購買地點</label>
             <input ref="locationInputRef" type="text" v-model="form.location" placeholder="搜尋地點,例如:東京澀谷 Pokemon Center" required>
           </div>
+
           <div class="form-group">
             <label>商品描述</label>
             <textarea
@@ -76,10 +75,9 @@
               <input type="file" accept="image/*" @change="handleImageUpload" ref="fileInputRef" style="display: none">
               <div v-if="!imagePreview" class="upload-placeholder" @click="() => fileInputRef?.click()">
                 <span class="plus-icon">+</span>
-<!--                <span class="plus-text"></span>-->
               </div>
               <div v-else class="image-preview-wrapper">
-                <img :src="getImageUrl(cachedData.avatar)" class="preview-img" alt="nnn">
+                <img :src="getImageUrl(imagePreview)" class="preview-img" alt="商品預覽">
                 <button type="button" class="remove-btn" @click="removeImage">✕</button>
               </div>
             </div>
@@ -91,18 +89,18 @@
             <small class="hint">期間內若無人接取委託,系統將自動刪除此需求。</small>
           </div>
 
-          <button type="submit" class="submit-btn">確認送出委託</button>
+          <button type="submit" class="submit-btn" :disabled="isSubmitting">
+            {{ isSubmitting ? '正在發佈中...' : '確認送出委託' }}
+          </button>
         </form>
       </div>
     </div>
 
-    <!--    地圖區域-->
     <div class="map-section">
       <div id="map" ref="mapDivRef"></div>
-
       <div v-if="selectedPlace" class="map-overlay-info">
         <div class="info-header">
-          <img class="pin-icon" :src="getImageUrl(cachedData.avatar )" alt="nnn">
+          <img class="pin-icon" :src="getImageUrl(cachedData.avatar)" alt="User Avatar">
           <strong>參考地點</strong>
         </div>
         <div class="place-name">{{ selectedPlace.name }}</div>
@@ -113,215 +111,123 @@
 </template>
 
 <script setup lang="ts">
-// 引入需要的功能
-import {ref as vueRef, onMounted, computed} from 'vue';
-// as vueRef -> googleMap 也有ref怕命名搞混
-// 路由器
+import { ref as vueRef, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCommissionStore } from '@/stores/commission';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import axios from "axios";
-// setOptions -> 設定金鑰...
-// importLibrary -> 動態載入googleMap的各項功能
 
-// 匯率
-const exchangeRate = vueRef({
-  JPY:0.201,
-  TWD:1,
-  USD:32.5,
-  EUR:35.2,
-  KRW:0.024,
-})
-
-const convertedPrice = computed(()=>{
-  if (!form.value.price || !form.value.currency) return 0;
-  const rate = exchangeRate.value[form.value.currency as keyof typeof exchangeRate.value];
-  return (form.value.price * rate).toFixed(2);
-  // 計算到小數點第二位
-})
-
-const fileInputRef = vueRef<HTMLInputElement | null>(null);
-
-const router = useRouter(); // 路由器實例
-const commissionStore = useCommissionStore(); // commissionStore實例
+// --- 狀態定義 ---
+const router = useRouter();
+const commissionStore = useCommissionStore();
+const isSubmitting = vueRef(false);
 const today = new Date().toISOString().split('T')[0];
-// 轉換成ISO格式 -> "2026-01-05T01:10:00.000Z"
-// .split('T')[0]; -> 用T分割字串
 
-// 建立一個響應式物件 -> 填資料要用的
 const form = vueRef({
   itemName: '',
-  price: null,
+  price: null as number | null,
   location: '',
   endDate: '',
-  quantity:1, // 預設數量1
+  quantity: 1,
   description: '',
-  category:'',
-  currency:'JPY'
+  category: '',
+  currency: 'JPY'
 });
 
-const addQty = ()=>{
-  form.value.quantity++;
-}
-const decreaseQty = ()=>{
-  if (form.value.quantity >= 1) {
-    form.value.quantity--;
-  }
-}
-// 建立一個響應式物件
-const avatar = vueRef('')
+const exchangeRate = vueRef({
+  JPY: 0.201,
+  TWD: 1,
+  USD: 32.5,
+  EUR: 35.2,
+  KRW: 0.024,
+});
 
+const avatar = vueRef('');
+const cachedData = vueRef({
+  avatar: localStorage.getItem('userAvatar')
+});
 
-// 先從cachedData 顯示舊圖片
-const cachedData = {
-  avatar:localStorage.getItem('userAvatar')
-}
+// --- 計算屬性 ---
+const convertedPrice = computed(() => {
+  if (!form.value.price || !form.value.currency) return '0.00';
+  const rate = exchangeRate.value[form.value.currency as keyof typeof exchangeRate.value];
+  return (form.value.price * rate).toFixed(2);
+});
 
-
-const  getImageUrl = (path: string|null) => {
-  if(!path) return 'https://i.imgur.com/6VBx3io.png';
-  // 沒有圖給預設圖
-  // 如果是 blob: 開頭（剛裁切完的暫時預覽）或是 data: 開頭（Base64），直接回傳
-  if (path.startsWith('blob:') || path.startsWith('data:')) {
-    return path;
-  }
-  return `http://localhost:5275${path}`;
-}
-
-
-// --- 圖片預覽與上傳邏輯 ---
+// --- 圖片與地圖相關 Refs ---
+const fileInputRef = vueRef<HTMLInputElement | null>(null);
+const locationInputRef = vueRef<HTMLInputElement | null>(null);
+const mapDivRef = vueRef<HTMLDivElement | null>(null);
 const imagePreview = vueRef<string | null>(null);
-// 儲存圖片url
-// <string | null>(null);  -> ts型別宣告,可以是字串或null
 const selectedFile = vueRef<File | null>(null);
-// 儲存檔案
-// <File | null>(null); -> File或是null
-// File -> 檔名,大小,類型
+const selectedPlace = vueRef<{
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  placeId: string;
+} | null>(null);
+
+let map: any = null;
+let marker: any = null;
+
+// --- 處理方法 ---
+const addQty = () => form.value.quantity++;
+const decreaseQty = () => { if (form.value.quantity > 1) form.value.quantity--; };
+
+const getImageUrl = (path: string | null) => {
+  if (!path) return 'https://i.imgur.com/6VBx3io.png';
+  if (path.startsWith('blob:') || path.startsWith('data:') || path.startsWith('http')) return path;
+  return `http://localhost:5275${path}`;
+};
 
 const handleImageUpload = (event: Event) => {
-  // event:Event -> 接收事件物件 ,選取時觸發
   const target = event.target as HTMLInputElement;
-  // 告訴ts這是一個html input
-  // 這樣才可以使用target.files 屬性
   if (target.files && target.files[0]) {
-    // target.files -> 檔案列表（可能可以多選）
-    // target.files[0]->第一個
     const file = target.files[0];
-    // 丟給上面的建立的響應式數據
     selectedFile.value = file;
     imagePreview.value = URL.createObjectURL(file);
-    // 丟給上面的建立的響應式數據
   }
 };
 
 const removeImage = () => {
   imagePreview.value = null;
   selectedFile.value = null;
+  if (fileInputRef.value) fileInputRef.value.value = '';
 };
 
-// --- 地圖變數 ---
-const locationInputRef = vueRef<HTMLInputElement | null>(null);
-// 搜尋匡裡面的字
-const mapDivRef = vueRef<HTMLDivElement | null>(null);
-// 響應式地圖容器 -> 可以是Div或是null
-
-// 用來儲存使用者選擇的地點
-const selectedPlace = vueRef<{
-  name: string; // 地點名稱
-  address: string;  // 完整地址
-  lat: number;  // 緯度
-  lng: number; // 經度
-  placeId: string; // 這個地點在Google Maps的唯一ID
-} | null>(null);
-
-let map: any = null;
-// 儲存Google地圖物件
-// any -> 地圖型別複雜
-// 用let 因為等一下要重新賦值
-let marker: any = null;
-// marker -> 紅色標點
-
-/*
-* 為啥不用ref?
-* 因為這兩個是 Google Maps 的物件,不需要 Vue 的響應式
-* 不會在 template 裡直接顯示它們
-* 只是用來操作地圖(移動中心點、放標記等)
-* */
-
+// --- 初始化地圖與資料 ---
 onMounted(async () => {
-  // google地圖載入需要時間 -> async 非同步處理
   try {
-    // 1. 設定 API 金鑰
     setOptions({
-      key:import.meta.env.VITE_GOOGLE_MAP_API_KEY,
-      // 金鑰
-      v: "weekly"
-      // weekly -> 使用每週更新最新版
+      key: import.meta.env.VITE_GOOGLE_MAP_API_KEY,
+      v: "weekly",
+      language: "zh-TW",
     });
 
-    // 2. 動態載入需要的函式庫
-
-    // 動態載入 更快,需要時才載入
-    // 從裡面拿出Map類別 -> 解構賦值
-    // 建立地圖物件
     const { Map } = await importLibrary("maps") as any;
-
-    // 用來標記地點
     const { AdvancedMarkerElement } = await importLibrary("marker") as any;
-
-    // 實現自動建議功能
     const { Autocomplete } = await importLibrary("places") as any;
 
-    // 3. 初始化地圖
-
-    // 第一個參數->mapDivRef-> 指定要放在哪個html元素
     map = new Map(mapDivRef.value, {
       center: { lat: 35.681236, lng: 139.767125 },
-      zoom: 20, //縮放等級
-      mapId: "DEMO_MAP_ID", // Google識別碼
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false
+      zoom: 17,
+      mapId: "DEMO_MAP_ID",
+      disableDefaultUI: true
     });
 
-    // 4. 初始化 Autocomplete (地點搜尋)
     const autocomplete = new Autocomplete(locationInputRef.value, {
-      // 第一個參數locationInputRef,綁定到input框框
       fields: ["geometry", "name", "formatted_address", "place_id"],
-      // [地理資訊經緯度,地點名稱,格式化地址,地點id唯一的]
       types: ["establishment", "geocode"]
-      // 設定搜尋的類型
-      // establishment-> 商家景點建築物
-      // geocode地址街道
     });
 
-    // 5. 監聽搜尋結果
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-      // autocomplete->拿剛剛取得的資訊
-      console.log(place);
-      if (!place.geometry || !place.geometry.location) {
-        console.warn("找不到該地點的地理資訊");
-        return;
-      }
+      if (!place.geometry || !place.geometry.location) return;
 
       map.setCenter(place.geometry.location);
-      // 把地圖中心點移到選中的地方
-      // place.geometry.location地點經緯度
-      map.setZoom(17);
-
-      if (marker) {
-        marker.map = null;
-      }
-      // 如果本來有標記先刪掉
-
-
-      marker = new AdvancedMarkerElement({
-        map: map,
-        position: place.geometry.location,
-        // 設定標記的位置
-        title: place.name
-      });
+      if (marker) marker.map = null;
+      marker = new AdvancedMarkerElement({ map, position: place.geometry.location, title: place.name });
 
       selectedPlace.value = {
         name: place.name || '',
@@ -330,49 +236,50 @@ onMounted(async () => {
         lng: place.geometry.location.lng(),
         placeId: place.place_id || ''
       };
-      // 儲存選中的地點的資訊 -> 給後端用的
-
       form.value.location = place.name || '';
-      // 丟到參考地點那個div -> 搜尋form.location
     });
 
-  } catch (err) {
-    console.error("地圖載入失敗:", err);
-    alert("地圖載入失敗");
-  }
-  try {
-      const token = localStorage.getItem('token');
-      const res  = await axios.get('/api/Auth/profile',{
+    // 抓取個人頭像
+    const token = localStorage.getItem('token');
+    if (token) {
+      const res = await axios.get('/api/Auth/profile', {
         headers: { Authorization: `Bearer ${token}` }
-      })
-    cachedData.avatar = res.data.avatar;
-  }
-  catch (error) {
-
+      });
+      cachedData.value.avatar = res.data.avatar;
+    }
+  } catch (err) {
+    console.error("初始化失敗:", err);
   }
 });
 
-// test
+// --- 送出表單 ---
+const handleSubmit = async () => {
+  if (isSubmitting.value) return;
+  isSubmitting.value = true;
 
-const handleSubmit = () => {
-  commissionStore.addCommission({
-    ...form.value,
-    // 展開運算符
-    /*
-    * itemName: form.value.itemName,
-      price: form.value.price,
-      location: form.value.location,
-      endDate: form.value.endDate,
-    * */
-    image: imagePreview.value,
-    latitude: selectedPlace.value?.lat || null,
-    longitude: selectedPlace.value?.lng || null,
-    formatted_address: selectedPlace.value?.address || null,
-    google_place_id: selectedPlace.value?.placeId || null
-  });
-  // 把這一整個大物件傳入addCommission
-  alert('委託發佈成功!');
-  router.push('/commissions');
+  try {
+    // 彙整要傳給 Store 的原始資料
+    const submitData = {
+      ...form.value,
+      rawImageFile: selectedFile.value,
+      latitude: selectedPlace.value?.lat || 0,
+      longitude: selectedPlace.value?.lng || 0,
+      formatted_address: selectedPlace.value?.address || '',
+      google_place_id: selectedPlace.value?.placeId || ''
+    };
+
+    const result = await commissionStore.addCommission(submitData);
+
+    if (result.success) {
+      alert('委託發佈成功！');
+      router.push('/commissions');
+    }
+  } catch (error: any) {
+    const errorMsg = error.response?.data?.message || '發佈失敗，請確認餘額是否充足';
+    alert(errorMsg);
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 </script>
 

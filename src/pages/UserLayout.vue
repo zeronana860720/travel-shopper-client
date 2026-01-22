@@ -35,6 +35,10 @@
             <i class="icon-dot"></i>
             <span class="menu-text">錢包管理</span>
           </router-link>
+          <router-link to="/user/message" class="menu-item">
+            <i class="icon-dot"></i>
+            <span class="menu-text">訊息中心</span>
+          </router-link>
         </nav>
 
         <div class="logout-section">
