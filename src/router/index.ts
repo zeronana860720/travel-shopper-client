@@ -47,6 +47,11 @@ const routes:RouteRecordRaw[] = [
         // ✨ 使用我們剛才聊過的「懶加載」，只有點到這頁才下載檔案
         component: () => import('../pages/CommissionsView.vue')
     },
+    {
+        path:'/commissions/:id',
+        name:'commissions-detail',
+        component: () => import('../pages/CommissionDetail.vue')
+    },
     // --- 新增：會員中心嵌套路由 ---
     {
         path: '/user',

@@ -14,16 +14,29 @@
     <div class="commissions-grid">
       <div
           v-for="item in filteredCommissions"
-          :key="item.id"
+          :key="item.serviceCode"
           class="simple-card"
       >
         <div class="card-img-box">
-          <img :src="item.image" :alt="item.name" class="product-img">
+          <img
+              :src="item.imageUrl ? ('http://127.0.0.1:5275' + item.imageUrl) : 'https://i.pinimg.com/1200x/f7/d1/36/f7d136d44bbad6846e1385711a6a634b.jpg'"
+              :alt="item.title"
+              class="product-img"
+          >
           <span class="img-tag" :class="currentTab">{{ getStatusLabel }}</span>
+
+          <!-- 懸浮編輯層 (只在已發佈和審核失敗時顯示) -->
+          <div
+              v-if="currentTab === 'published' || currentTab === 'failed'"
+              class="card-overlay"
+              @click.stop="handleEdit(item.serviceCode)"
+          >
+            <span class="edit-text">編輯委託</span>
+          </div>
         </div>
 
         <div class="card-info">
-          <h3 class="product-name">{{ item.name }}</h3>
+          <h3 class="product-name">{{ item.title }}</h3>
 
           <div class="detail-row">
             <span class="label">參考價格：</span>
@@ -37,11 +50,41 @@
 
           <div class="detail-row">
             <span class="label">截止日期：</span>
-            <span class="value date">{{ item.deadline }}</span>
+            <span class="value date">{{ formatDate(item.createdAt) }}</span>
           </div>
 
           <div v-if="currentTab === 'failed'" class="failed-reason">
-            <strong>失敗原因：</strong>{{ item.reason }}
+            <strong>失敗原因：</strong>
+          </div>
+
+          <!-- ✨ 操作按鈕區域 -->
+          <div class="card-actions">
+            <!-- 已發佈：編輯 + 刪除 -->
+            <template v-if="currentTab === 'published'">
+              <button class="edit-action-btn" @click.stop="handleEdit(item.serviceCode)">
+                <i class="icon">✎</i> 編輯資訊
+              </button>
+              <button class="delete-action-btn" @click.stop="handleDelete(item.serviceCode)">
+                <i class="icon"></i> 刪除委託
+              </button>
+            </template>
+
+            <!-- 審核中：只能刪除 -->
+            <template v-else-if="currentTab === 'pending'">
+              <button class="delete-action-btn full-width" @click.stop="handleDelete(item.serviceCode)">
+                <i class="icon"></i> 刪除委託
+              </button>
+            </template>
+
+            <!-- 審核失敗：編輯 + 刪除 -->
+            <template v-else-if="currentTab === 'failed'">
+              <button class="edit-action-btn" @click.stop="handleEdit(item.serviceCode)">
+                <i class="icon">✎</i> 重新編輯
+              </button>
+              <button class="delete-action-btn" @click.stop="handleDelete(item.serviceCode)">
+                <i class="icon"></i> 刪除委託
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -53,40 +96,72 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue';
+<script setup lang="ts" name="commissions-page">
+import { ref, computed, onMounted } from 'vue';
+import { useCommissionStore } from '@/stores/commission'; // 確保路徑對應你的 Pinia store
 
+// 1. 初始化 Store
+const store = useCommissionStore();
+
+// 2. 頁籤相關設定
 type TabType = 'published' | 'pending' | 'failed';
-
 const currentTab = ref<TabType>('published');
 
-const tabs = [
+// 把這裡加上型別定義
+const tabs: { id: TabType; label: string }[] = [
   { id: 'published', label: '已發佈' },
   { id: 'pending', label: '審核中' },
   { id: 'failed', label: '審核失敗' }
 ];
 
-// 模擬委託資料
-const commissionsData = ref({
-  published: [
-    { id: 1, name: '吉伊卡哇沖繩限定吊飾', price: 500, location: '日本沖繩', deadline: '2026-02-01', image: 'https://bucket-image.inkmaginecms.com/version/hd/9dde7c0f-a597-445c-80dd-9a93db8a4006/image/2025/06/beaafaad-a543-4d37-ad1b-da0287de9589.jpg' },
-    { id: 2, name: '排球少年快閃店周邊', price: 1200, location: '台北三創', deadline: '2026-01-15', image: '/everett.png' }
-  ],
-  pending: [
-    { id: 3, name: '虛擬歌手演唱會手燈', price: 1800, location: '日本官方通販', deadline: '2026-03-20', image: '/everett.png' }
-  ],
-  failed: [
-    { id: 4, name: '非法違禁品委託測試', price: 9999, location: '不明', deadline: '2026-01-01', image: '/everett.png', reason: '委託內容違反平台安全守則，請重新修改。' }
-  ]
+// 3. 頁面掛載時，立刻去後端抓資料
+onMounted(() => {
+  store.fetchUserManageCommissions();
+  console.log('檢查後端回傳的資料：', store.commissions);
 });
 
-const filteredCommissions = computed(() => commissionsData.value[currentTab.value]);
+// 4. 修改後的動態篩選邏輯
+const filteredCommissions = computed(() => {
+  // 從 store 的 commissions 陣列中過濾
+  return store.commissions.filter(item => {
+    if (currentTab.value === 'pending') return item.status === '審核中';
+    if (currentTab.value === 'failed') return item.status === '審核失敗';
+    if (currentTab.value === 'published') {
+      // 除了審核中和失敗，其餘已通過審核的狀態（如：出貨中、已寄出）都放在這一欄
+      return item.status !== '審核中' && item.status !== '審核失敗';
+    }
+    return false;
+  });
+});
 
+// 5. 狀態標籤文字
 const getStatusLabel = computed(() => {
   if (currentTab.value === 'published') return '已上架';
   if (currentTab.value === 'pending') return '審核中';
   return '未通過';
 });
+
+// 6. 操作函式（之後可以再補上 API 呼叫）
+const handleEdit = (id: string | number) => {
+  alert(`開啟編輯 - ID: ${id}`);
+};
+
+const handleDelete = (id: string | number) => {
+  if (confirm('確定要刪除嗎？ (´•̥̥̥ω•̥̥̥`)')) {
+    alert(`執行刪除 - ID: ${id}`);
+  }
+};
+
+// ✨ 新增：日期格式化工具
+const formatDate = (dateStr: string | undefined) => {
+  if (!dateStr) return '無日期';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\//g, '-'); // 把 / 換成 -
+};
 </script>
 
 <style scoped>
@@ -136,6 +211,8 @@ const getStatusLabel = computed(() => {
   overflow: hidden;
   transition: all 0.3s ease;
   border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
 }
 
 .simple-card:hover {
@@ -148,6 +225,36 @@ const getStatusLabel = computed(() => {
   position: relative;
   height: 160px;
   background-color: #f8f8f8;
+  overflow: hidden;
+}
+
+/* 懸浮編輯層 */
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: 0.3s;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.simple-card:hover .card-overlay {
+  opacity: 1;
+}
+
+.edit-text {
+  color: white;
+  border: 1px solid white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
 }
 
 .product-img {
@@ -156,7 +263,7 @@ const getStatusLabel = computed(() => {
   object-fit: cover;
 }
 
-/* --- 狀態標籤 (繼承膠囊樣式) --- */
+/* --- 狀態標籤 --- */
 .img-tag {
   position: absolute;
   top: 10px;
@@ -167,14 +274,18 @@ const getStatusLabel = computed(() => {
   padding: 4px 12px;
   border-radius: 20px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 3;
 }
-.published { background-color: #fb7299; } /* 粉色 */
-.pending { background-color: #ffb11b; }   /* 橙色 */
-.failed { background-color: #9499a0; }    /* 灰色 */
+.published { background-color: #fb7299; }
+.pending { background-color: #ffb11b; }
+.failed { background-color: #9499a0; }
 
 /* --- 資訊內文 --- */
 .card-info {
   padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-name {
@@ -222,6 +333,57 @@ const getStatusLabel = computed(() => {
   font-size: 12px;
   color: #ff4d4f;
   border: 1px solid #ffccc7;
+}
+
+/* ✨ 操作按鈕區域 */
+.card-actions {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px dotted #eee;
+  display: flex;
+  gap: 8px;
+}
+
+.edit-action-btn,
+.delete-action-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid;
+}
+
+.edit-action-btn {
+  background: white;
+  border-color: #ccd0d7;
+  color: #666;
+}
+
+.edit-action-btn:hover {
+  border-color: #fb7299;
+  color: #fb7299;
+  background-color: #fff0f3;
+}
+
+.delete-action-btn {
+  background: white;
+  border-color: #ffccc7;
+  color: #ff4d4f;
+}
+
+.delete-action-btn:hover {
+  background-color: #fff1f0;
+  border-color: #ff4d4f;
+}
+
+.delete-action-btn.full-width {
+  flex: 1 1 100%;
 }
 
 .empty-box {

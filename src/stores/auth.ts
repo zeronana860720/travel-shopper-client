@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isLoggedIn = computed(() => !!token.value)
 
-    function login(newToken: string, name: string, avatarUrl: string, userBalance: number) {
+    function login(newToken: string, name: string, avatarUrl: string, userBalance: number,userId:string) {
         token.value = newToken
         userName.value = name
         balance.value = Number(userBalance)||0
@@ -21,6 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('userAvatar', avatarUrl || '')
         // 確保存入的是字串
         localStorage.setItem('balance', userBalance.toString())
+        localStorage.setItem('userId', userId.toString())
     }
 
     function logout() {
