@@ -8,6 +8,8 @@ export const useCommissionStore = defineStore('commission', {
         commissions: [] as Commission[], // 初始化為空陣列，類型為第一步定義的 Commission
         loading: false,// 用來記錄是否正在載入中
         currentCommission: null as Commission | null,
+        // 存放我接取的委託
+        acceptedCommissions: [] as any[],
     }),
 
     // 2. Actions：用來執行非同步操作（如呼叫 API）的「動作」
@@ -137,5 +139,60 @@ export const useCommissionStore = defineStore('commission', {
                 throw error;
             }
         },
+        // ✨ 新增：抓取「我接取的委託」清單（賣家模式用）
+        async fetchMyAcceptCommissions() {
+            this.loading = true;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get('http://127.0.0.1:5275/api/Manage/Commission/MyAccept', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                // 將後端回傳的 DTO 列表存入 state
+                this.acceptedCommissions = response.data;
+                console.log('委託訂單資訊', this.acceptedCommissions);
+            } catch (error) {
+                console.error('抓取委託訂單失敗', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        // 新增：上傳收據功能
+        async uploadReceipt(serviceCode: string) {
+            try{
+                const token = localStorage.getItem('token');
+                const response = await axios.post(`http://127.0.0.1:5275/Commission/${serviceCode}/receipt`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+            }
+            catch (error) {
+                console.error(error);
+            }
+        },
+        // ✨ 新增：刪除委託 Actions
+        async deleteCommission(serviceCode: string) {
+            try {
+                const token = localStorage.getItem('token');
+                // 1. 發送 DELETE 請求
+                const response = await axios.delete(`http://127.0.0.1:5275/Commission/${serviceCode}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (response.data.success) {
+                    // 2. 刪除成功後，重新抓取清單來刷新畫面 (同時確保餘額等資訊同步)
+                    await this.fetchUserManageCommissions();
+                    return { success: true, message: response.data.message };
+                }
+            } catch (error: any) {
+                console.error('刪除委託失敗:', error);
+                throw error.response?.data || { success: false, message: '刪除失敗，請稍後再試' };
+            }
+        }
     }
 });

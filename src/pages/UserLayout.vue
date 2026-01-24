@@ -17,10 +17,10 @@
             <span class="menu-text">個人資料</span>
           </router-link>
 
-          <router-link to="/user/orders" class="menu-item">
-            <i class="icon-dot"></i>
-            <span class="menu-text">訂單管理</span>
-          </router-link>
+<!--          <router-link to="/user/orders" class="menu-item">-->
+<!--            <i class="icon-dot"></i>-->
+<!--            <span class="menu-text">訂單管理</span>-->
+<!--          </router-link>-->
 
           <router-link to="/user/commissions" class="menu-item">
             <i class="icon-dot"></i>
@@ -35,6 +35,24 @@
             <i class="icon-dot"></i>
             <span class="menu-text">訊息中心</span>
           </router-link>
+          <div class="menu-group">
+            <div class="menu-item" @click="toggleOrder">
+              <i class="icon-dot"></i>
+              <span class="menu-text">訂單總覽</span>
+              <i class="arrow-icon" :class="{ expanded: isOrderOpen }">▼</i>
+            </div>
+
+            <div v-show="isOrderOpen" class="sub-menu">
+              <router-link to="/user/orders" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">委託訂單</span>
+              </router-link>
+              <router-link to="/user/walletLogs" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">賣場訂單</span>
+              </router-link>
+            </div>
+          </div>
 
           <div class="menu-group">
             <div class="menu-item" @click="toggleWallet">
@@ -80,10 +98,14 @@ const currentUserName = ref(localStorage.getItem('userName'));
 // const currentUserName = ref(localStorage.getItem('userName') || '訪客');
 const currentUserAvatar = ref(localStorage.getItem('userAvatar') || '');
 const isWalletOpen = ref(false);
+const isOrderOpen = ref(false);
 
 
 const toggleWallet = () => {
   isWalletOpen.value = !isWalletOpen.value;
+}
+const toggleOrder = ()=>{
+  isOrderOpen.value = !isOrderOpen.value;
 }
 const handleLogout = () => {
   if (confirm('確定要登出嗎？')) {

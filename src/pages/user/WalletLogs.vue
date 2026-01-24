@@ -18,10 +18,16 @@
       <div v-for="log in walletLogs" :key="log.id" class="log-card">
         <div class="log-main">
           <div class="log-type-tag" :class="log.action.toLowerCase()">
-            {{ log.action === 'Deposit' ? '儲值' : '異動' }}
+            {{
+              log.action === 'Deposit' ? '儲值' :
+              log.action === 'CommissionDelete' ? '退款' :
+              log.action === 'CommissionPay' ? '支付' : '異動'
+            }}
           </div>
           <div class="log-content">
-            <div class="log-title">{{ log.action === 'Deposit' ? '錢包餘額儲值' : '帳戶金額調整' }}</div>
+            <div class="log-title">
+              {{ log.description || (log.action === 'Deposit' ? '錢包餘額儲值' : '帳戶金額調整') }}
+            </div>
             <div class="log-time">{{ new Date(log.createdAt).toLocaleString() }}</div>
           </div>
         </div>
@@ -29,7 +35,9 @@
         <div class="log-values">
           <div class="log-amount-wrapper">
             <span class="label">變動金額：</span>
-            <span class="value price">+NT$ {{ log.amount.toLocaleString() }}</span>
+            <span class="value price" :class="{ 'negative': log.amount < 0 }">
+            {{ log.amount > 0 ? '+' : '' }}NT$ {{ log.amount.toLocaleString() }}
+            </span>
           </div>
           <div class="log-balance-wrapper">
             <span class="label">異動後餘額：</span>
@@ -176,5 +184,36 @@ onMounted(async () => {
   color: #fb7299;
   font-weight: bold;
   font-size: 16px;
+}
+.log-type-tag.refund {
+  background-color: #4caf50; /* 綠色代表退款入帳，很有獲利感唷！ */
+}
+/* 支付委託的標籤顏色 */
+.log-type-tag.commissionpay {
+  background-color: #00aeec;
+}
+
+/* 如果金額是負的，顏色也可以變一下 */
+.price.negative {
+  color: #9499a1; /* 支出用灰色或深色，跟收入的粉紅色區隔開 */
+}
+.log-type-tag.commissiondelete {
+  background-color: #fb7299;
+}
+/* 4. 金額文字顏色優化 */
+.price {
+  color: #fb7299; /* 預設收入金額用粉紅 */
+}
+
+/* 如果金額是負的（支出）*/
+.price.negative {
+  color: #00aeec; /* 橘色代表金流異動中，比灰色好看很多唷！ */
+}
+/* 讓卡片在支出時也有淡淡的邊框色 */
+.log-card:has(.commissionpay) {
+  border-left: 5px solid #00aeec;
+}
+.log-card:has(.commissiondelete) {
+  border-left: 5px solid #fb7299;
 }
 </style>
