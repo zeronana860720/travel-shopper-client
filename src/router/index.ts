@@ -97,13 +97,6 @@ const routes:RouteRecordRaw[] = [
 
         ]
     },
-    {
-        // 這裡的 :serviceCode 就是妳在網址列會看到的變動參數
-        path: '/commission/edit/:serviceCode',
-        name: 'CommissionEdit',
-        component: () => import('../pages/EditCommission.vue'), // 確保路徑對應到妳的編輯組件
-        meta: { title: '編輯委託' }
-    }
 ]
 const router = createRouter({
     history:createWebHistory(),
