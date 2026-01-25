@@ -132,7 +132,7 @@ const store = useCommissionStore();
 // type TabType = 'published' | 'pending' | 'failed';
 
 type TabType = 'waiting' | 'progress' | 'pending' | 'failed'|'all';
-const currentTab = ref<TabType>('waiting');
+const currentTab = ref<TabType>('all');
 
 // 把這裡加上型別定義
 const tabs: { id: TabType; label: string }[] = [
