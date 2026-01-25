@@ -17,9 +17,13 @@
 
       <div class="price-section">
         <div class="price-row">
-          <span class="currency">商品原價 {{commissionStore.currentCommission.currency}}$</span>
+          <span class="currency">商品單價：{{ commissionStore.currentCommission.currency }}$</span>
           <span class="amount">{{ commissionStore.currentCommission.price }}</span>
-          <span class="qty"> x {{ commissionStore.currentCommission.quantity }} 件</span>
+        </div>
+
+        <div class="price-row">
+          <span class="label">委託數量：</span>
+          <span class="qty">{{ commissionStore.currentCommission.quantity }} 件</span>
         </div>
 
 <!--        <div class="fee-row">-->
@@ -28,7 +32,7 @@
 <!--        </div>-->
 
         <div class="total-row">
-          <span class="label">預期收入：</span>
+          <span class="label">本件收入：</span>
           <span class="value highlight">NT$ {{ commissionStore.currentCommission.fee }}</span>
         </div>
       </div>
@@ -279,4 +283,23 @@ const handleAccept = async () => {
 .buy-now { background: #fb7299; color: white; border: none; }
 
 .back-link { margin-top: 20px; background: none; border: none; color: #999; cursor: pointer; }
+/* 修改這部分：讓每一行之間有舒適的間距 */
+.price-row {
+  display: flex;
+  align-items: baseline; /* 讓文字底部對齊，看起來更整齊 */
+  gap: 8px;              /* 標籤跟數值之間的距離 */
+  margin-bottom: 8px;    /* 兩行之間的距離 */
+}
+
+/* 新增這部分：專門針對數量那一行的樣式 */
+.qty {
+  color: #333;           /* 數量用深色，跟價格的粉紅色區隔 */
+  font-size: 18px;       /* 稍微大一點點，讓使用者一眼看清 */
+  font-weight: 500;
+}
+
+.label {
+  color: #666;           /* 「委託數量」標籤用灰色 */
+  font-size: 14px;
+}
 </style>
