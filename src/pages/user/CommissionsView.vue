@@ -1,14 +1,27 @@
 <template>
   <div class="commissions-page">
     <div class="tab-switcher">
-      <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          :class="['switch-btn', { active: currentTab === tab.id }]"
-          @click="currentTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
+      <div class="tab-group">
+        <button
+            v-for="tab in leftTabs"
+            :key="tab.id"
+            :class="['switch-btn', { active: currentTab === tab.id }]"
+            @click="currentTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="tab-group">
+        <button
+            v-for="tab in rightTabs"
+            :key="tab.id"
+            :class="['switch-btn', { active: currentTab === tab.id }]"
+            @click="currentTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
     </div>
 
     <div class="commissions-grid">
@@ -73,8 +86,8 @@
               </button>
               <button
                   class="complete-action-btn"
-                  :class="{ 'is-disabled': !item.receiptUrl }"
-                  :disabled="!item.receiptUrl"
+                  :class="{ 'is-disabled': item.status !== '已寄出' }"
+                  :disabled="item.status !== '已寄出'"
                   @click.stop="handleCompleteOrder(item.serviceCode)"
               >
                 完成訂單
@@ -118,13 +131,24 @@ const store = useCommissionStore();
 // 2. 頁籤相關設定
 // type TabType = 'published' | 'pending' | 'failed';
 
-type TabType = 'waiting' | 'progress' | 'pending' | 'failed';
+type TabType = 'waiting' | 'progress' | 'pending' | 'failed'|'all';
 const currentTab = ref<TabType>('waiting');
 
 // 把這裡加上型別定義
 const tabs: { id: TabType; label: string }[] = [
   { id: 'waiting', label: '待接單' },
   { id: 'progress', label: '進行中' },
+  { id: 'pending', label: '審核中' },
+  { id: 'failed', label: '審核失敗' }
+];
+
+const leftTabs: { id: TabType; label: string }[] = [
+  { id: 'all', label: '全部委託' },
+  { id: 'waiting', label: '待接單' },
+  { id: 'progress', label: '進行中' }
+];
+
+const rightTabs: { id: TabType; label: string }[] = [
   { id: 'pending', label: '審核中' },
   { id: 'failed', label: '審核失敗' }
 ];
@@ -138,18 +162,22 @@ onMounted(() => {
 // 4. 修改後的動態篩選邏輯
 const filteredCommissions = computed(() => {
   return store.commissions.filter(item => {
-    // 1. 如果是在「待接單」分頁，只顯示狀態為待接單的資料
+    // 1. ✨ 新增：如果是「全部委託」，直接回傳 true（通通都顯示！）
+    if (currentTab.value === 'all') return true;
+
+    // 2. 如果是在「待接單」分頁
     if (currentTab.value === 'waiting') return item.status === '待接單';
 
-    // 2. 如果是在「審核中」分頁
+    // 3. 如果是在「審核中」分頁
     if (currentTab.value === 'pending') return item.status === '審核中';
 
-    // 3. 如果是在「審核失敗」分頁
+    // 4. 如果是在「審核失敗」分頁
     if (currentTab.value === 'failed') return item.status === '審核失敗';
 
-    // 4. 「進行中」分頁：除了待接單、審核中、審核失敗以外的（如：已接單、已寄出）
+    // 5. 「進行中」分頁：顯示已接單、已寄出、出貨中等（排除掉待接單與審核相關的）
     if (currentTab.value === 'progress') {
-      return item.status !== '待接單' && item.status !== '審核中' && item.status !== '審核失敗';
+      const excludeStatus = ['待接單', '審核中', '審核失敗', '已完成', 'cancelled'];
+      return !excludeStatus.includes(item.status);
     }
 
     return false;
@@ -212,6 +240,26 @@ const formatDate = (dateStr: string | undefined) => {
     day: '2-digit'
   }).replace(/\//g, '-'); // 把 / 換成 -
 };
+
+// 1. ✨ 實作點擊完成訂單的邏輯
+const handleCompleteOrder = async (serviceCode: string) => {
+  // 先跟使用者確認一下，避免手滑點錯喔！ (｡•ㅅ•｡)
+  if (confirm('確定已收到商品並要完成訂單嗎？點擊後款項將會撥給小幫手唷！')) {
+    try {
+      // 2. 呼叫 Pinia Store 的 Action
+      const result = await store.completeCommission(serviceCode);
+
+      if (result?.success) {
+        alert('太棒了！訂單已完成，辛苦你囉！ (๑˃ᴗ˂)ﻭ');
+        // 3. 重新抓取資料，確保畫面上的狀態是最新的
+        await store.fetchUserManageCommissions();
+      }
+    } catch (error: any) {
+      // 4. 如果後端報錯（例如：還沒上傳收據），就顯示錯誤訊息
+      alert(error.message || '操作失敗，請稍後再試');
+    }
+  }
+};
 </script>
 
 <style scoped>
@@ -222,11 +270,16 @@ const formatDate = (dateStr: string | undefined) => {
 /* --- 切換鈕 --- */
 .tab-switcher {
   display: flex;
-  background: #eee;
+  justify-content: space-between; /* ✨ 關鍵：讓兩組群組一左一右 */
+  align-items: center;
+  width: 100%;                  /* 撐滿容器寬度 */
+  margin-bottom: 25px;
+}
+.tab-group {
+  display: flex;
+  background: #eee;             /* 把灰色背景移到群組層級 */
   padding: 4px;
   border-radius: 25px;
-  width: fit-content;
-  margin-bottom: 25px;
 }
 
 .switch-btn {
