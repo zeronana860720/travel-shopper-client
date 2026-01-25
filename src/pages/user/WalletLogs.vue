@@ -21,7 +21,8 @@
             {{
               log.action === 'Deposit' ? '儲值' :
               log.action === 'CommissionDelete' ? '退款' :
-              log.action === 'CommissionPay' ? '支付' : '異動'
+              log.action === 'CommissionPay' ? '支付' :
+              log.action === 'CommissionIncome' ? '收入' : '異動'
             }}
           </div>
           <div class="log-content">
@@ -215,5 +216,19 @@ onMounted(async () => {
 }
 .log-card:has(.commissiondelete) {
   border-left: 5px solid #fb7299;
+}
+/* 委託完成收入的標籤顏色 - 用溫暖的橘黃色，代表收成！ */
+.log-type-tag.commissionincome {
+  background-color: #ff9800;
+}
+
+/* 讓收入卡片左側有一條亮眼的色塊引導視覺 */
+.log-card:has(.commissionincome) {
+  border-left: 5px solid #ff9800;
+}
+
+/* 確保正數金額（收入）看起來很顯眼 */
+.price:not(.negative) {
+  color: #ff5722; /* 暖橘色或原本的粉色都很適合收入唷！ */
 }
 </style>

@@ -218,6 +218,37 @@ export const useCommissionStore = defineStore('commission', {
                 console.error('出貨失敗:', error);
                 throw error.response?.data || { success: false, message: '出貨失敗，請稍後再試' };
             }
+        },
+        // ✨ 修改後的完成委託 Action
+        async completeCommission(serviceCode: string) {
+            try {
+                // 1. 取得 Token
+                const token = localStorage.getItem('token');
+
+                // 2. 確保網址與 Controller 的 [Route("Commission")] 對齊
+                // 去掉原本誤加的 /api
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/Commission/${serviceCode}/complete`,
+                    {}, // Body 傳空物件
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}` // 補上這張「通行證」
+                        }
+                    }
+                );
+
+                if (response.data.success) {
+                    // 更新本地狀態邏輯不變...
+                    const index = this.commissions.findIndex(c => c.serviceCode === serviceCode);
+                    if (index !== -1) {
+                        this.commissions[index].status = '已完成';
+                    }
+                    return { success: true, message: response.data.message };
+                }
+            } catch (error: any) {
+                console.error('完成訂單失敗：', error);
+                throw error.response?.data || { message: '連線伺服器失敗' };
+            }
         }
     }
 });
