@@ -193,6 +193,31 @@ export const useCommissionStore = defineStore('commission', {
                 console.error('刪除委託失敗:', error);
                 throw error.response?.data || { success: false, message: '刪除失敗，請稍後再試' };
             }
+        },
+        // 新增：出貨通知
+        // ✨ 新增：提交出貨資訊 Action
+        async shipCommission(serviceCode: string, shipData: { LogisticsName: string, TrackingNumber?: string, Remark?: string }) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/Commission/${serviceCode}/ship`,
+                    shipData, // 傳送物流資訊
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (response.data.success) {
+                    // 成功後，重新抓取「我接取的委託」清單，讓畫面按鈕狀態更新
+                    await this.fetchMyAcceptCommissions();
+                    return { success: true, message: response.data.message };
+                }
+            } catch (error: any) {
+                console.error('出貨失敗:', error);
+                throw error.response?.data || { success: false, message: '出貨失敗，請稍後再試' };
+            }
         }
     }
 });

@@ -1,19 +1,15 @@
 <template>
   <div class="orders-page">
-<!--    <div class="mode-switcher">-->
-<!--      <button-->
-<!--          :class="['switch-btn', { active: currentMode === 'buyer' }]"-->
-<!--          @click="currentMode = 'buyer'"-->
-<!--      >-->
-<!--        我是買家-->
-<!--      </button>-->
-<!--      <button-->
-<!--          :class="['switch-btn', { active: currentMode === 'seller' }]"-->
-<!--          @click="currentMode = 'seller'"-->
-<!--      >-->
-<!--        我是賣家-->
-<!--      </button>-->
-<!--    </div>-->
+    <div class="tab-switcher">
+      <button
+          v-for="tab in filterTabs"
+          :key="tab.id"
+          :class="['switch-btn', { active: filterStatus === tab.id }]"
+          @click="filterStatus = tab.id"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
 
     <div class="orders-grid">
       <div
@@ -44,9 +40,31 @@
 
             <span class="product-quantity">數量：{{ order.quantity }}</span>
           </div>
-          <div class="card-actions" v-if="order.canUpdateReceipt">
-            <button class="upload-btn" @click.stop="handleUpload(order.serviceCode)">
+          <div class="card-actions">
+            <template v-if="order.status === '出貨中' || order.status === '已寄出'">
+              <button
+                  class="ship-btn"
+                  :class="{ 'is-disabled': order.status === '已寄出' }"
+                  :disabled="order.status === '已寄出'"
+                  @click.stop="handleShip(order.serviceCode)"
+              >
+                {{ order.status === '已寄出' ? '已完成出貨' : '出貨完成' }}
+              </button>
+            </template>
+
+            <button
+                v-else
+                class="upload-btn"
+                @click.stop="handleUpload(order.serviceCode)"
+            >
               上傳收據
+            </button>
+
+            <button
+                class="detail-btn"
+                @click.stop="handleViewDetail(order.serviceCode)"
+            >
+              查看詳情
             </button>
           </div>
         </div>
@@ -63,6 +81,31 @@
     <div v-if="displayOrders.length === 0" class="empty-box">
       目前沒有相關訂單紀錄
     </div>
+    <div v-if="showShipModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>填寫出貨資訊 (｡•ㅅ•｡)♡</h3>
+
+        <div class="input-group">
+          <label>物流名稱 *</label>
+          <input v-model="shipForm.LogisticsName" placeholder="例如：順豐、黑貓、7-11" />
+        </div>
+
+        <div class="input-group">
+          <label>物流單號</label>
+          <input v-model="shipForm.TrackingNumber" placeholder="請輸入追蹤編號" />
+        </div>
+
+        <div class="input-group">
+          <label>備註 (選填)</label>
+          <textarea v-model="shipForm.Remark" placeholder="有什麼想對買家說的嗎？"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="showShipModal = false">取消</button>
+          <button class="confirm-btn" @click="submitShip">確認出貨</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -77,7 +120,17 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const currentServiceCode = ref(''); // 用來記錄現在是哪一筆訂單要上傳
 
 // 切換模式：'buyer' 或 'seller'
-const currentMode = ref<'buyer' | 'seller'>('buyer');
+// const currentMode = ref<'buyer' | 'seller'>('buyer');
+
+// 設定目前篩選的狀態：'all' (全部), 'unshipped' (未出貨), 'shipped' (已出貨)
+const filterStatus = ref<'all' | 'unshipped' | 'shipped'>('all');
+
+// 定義篩選按鈕的選項
+const filterTabs = [
+  { id: 'all', label: '全部' },
+  { id: 'unshipped', label: '未出貨' },
+  { id: 'shipped', label: '已出貨' }
+];
 
 // 建立一個響應式的陣列，用來存放從後端 API 取得的委託清單
 const acceptOrders = ref<AcceptCommission[]>([]);
@@ -110,8 +163,27 @@ interface AcceptCommission{
 //   ]
 // });
 
-// ✨ 簡化後的計算屬性：直接指向 Pinia 的資料
-const displayOrders = computed(() => commissionStore.acceptedCommissions);
+// ✨ 根據「已寄出」狀態來進行分類
+const displayOrders = computed(() => {
+  const allOrders = commissionStore.acceptedCommissions;
+
+  return allOrders.filter(order => {
+    // 1. 全部：不解釋，通通秀出來！
+    if (filterStatus.value === 'all') return true;
+
+    // 2. 已出貨：狀態必須完全等於「已寄出」
+    if (filterStatus.value === 'shipped') {
+      return order.status === '已寄出';
+    }
+
+    // 3. 未出貨：只要狀態不是「已寄出」，就屬於未出貨
+    if (filterStatus.value === 'unshipped') {
+      return order.status !== '已寄出';
+    }
+
+    return false;
+  });
+});
 
 onMounted(() => {
   commissionStore.fetchMyAcceptCommissions()
@@ -162,6 +234,39 @@ const onFileSelected = async (event: Event) => {
     target.value = '';
   }
 };
+
+const showShipModal = ref(false);
+const shipForm = ref({
+  LogisticsName: '',
+  TrackingNumber: '',
+  Remark: ''
+});
+
+// 當點擊「出貨完成」按鈕時
+const handleShip = (serviceCode: string) => {
+  currentServiceCode.value = serviceCode; // 記住是哪一筆
+  // 重置表單
+  shipForm.value = { LogisticsName: '', TrackingNumber: '', Remark: '' };
+  showShipModal.value = true; // 開啟彈窗
+};
+
+// 呼叫 Store 送出資料
+const submitShip = async () => {
+  if (!shipForm.value.LogisticsName) {
+    alert('請填寫物流名稱唷！');
+    return;
+  }
+
+  try {
+    const result = await commissionStore.shipCommission(currentServiceCode.value, shipForm.value);
+    if (result?.success) {
+      alert(result.message);
+      showShipModal.value = false; // 關閉彈窗
+    }
+  } catch (error: any) {
+    alert(error.message || '出貨失敗 Q_Q');
+  }
+};
 </script>
 
 <style scoped>
@@ -179,9 +284,10 @@ const onFileSelected = async (event: Event) => {
   margin-bottom: 25px;
 }
 
+/* --- 按鈕樣式：繼承妳喜歡的可愛粉紅風格 --- */
 .switch-btn {
   border: none;
-  padding: 8px 24px;
+  padding: 8px 24px;         /* 增加左右內距，讓它胖胖的很可愛 */
   border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
@@ -190,11 +296,12 @@ const onFileSelected = async (event: Event) => {
   transition: all 0.3s;
 }
 
+/* --- 啟動狀態：變回白色底、粉紅字 --- */
 .switch-btn.active {
   background: white;
-  color: #fb7299;
+  color: #fb7299;            /* 妳專屬的粉紅色 */
   font-weight: bold;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 增加一點點立體陰影 */
 }
 
 /* --- 網格佈局 (繼承你的 hot-grid) --- */
@@ -296,32 +403,35 @@ const onFileSelected = async (event: Event) => {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
-/* ✨ 上傳按鈕主樣式 */
+/* ✨ 上傳收據：實心粉紅 (方角版本) */
 .upload-btn {
-  background-color: #fb7299; /* 妳的主題粉紅色 */
+  flex: 1;                /* 讓它跟其他按鈕平分空間 */
+  background-color: #fb7299;
   color: white;
-  border: none;
-  padding: 6px 16px;
-  border-radius: 20px; /* 圓角膠囊造型 */
-  font-size: 14px;
+  border: 1px solid #fb7299;
+  padding: 8px;           /* 統一高度 */
+  border-radius: 6px;     /* ✨ 關鍵：統一圓角為 6px */
+  font-size: 13px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(251, 114, 153, 0.2);
+  transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* ✨ 滑鼠移上去的效果：稍微變亮並浮起來 */
 .upload-btn:hover {
   background-color: #ff85ad;
+  border-color: #ff85ad;
+  /* 移除原本的圓角陰影，改用簡潔的過渡 */
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(251, 114, 153, 0.4);
 }
 
-/* ✨ 點擊時的縮放回饋 */
 .upload-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 /* ✨ 讓價格和收入垂直排列 */
 .price-group {
@@ -349,5 +459,155 @@ const onFileSelected = async (event: Event) => {
   display: flex;
   flex-direction: column; /* 強制垂直排列 */
   gap: 2px;               /* 讓兩行字之間有一點點呼吸的空間 */
+}
+.tab-switcher {
+  display: flex;
+  background: #eee;          /* 淺灰色底色 */
+  padding: 4px;
+  border-radius: 25px;       /* 圓角弧度 */
+  width: fit-content;        /* ✨ 關鍵：讓容器寬度隨按鈕內容縮放 */
+  margin-bottom: 25px;
+}
+/* ✨ 出貨完成 / 完成訂單：實心粉紅 (方角) */
+.ship-btn, .complete-action-btn {
+  flex: 1;
+  background-color: #fb7299;
+  color: white;
+  border: 1px solid #fb7299;
+  padding: 8px;           /* 對齊妳原本的 delete-action-btn */
+  border-radius: 6px;      /* ✨ 關鍵：改回 6px 方角 */
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ship-btn:hover, .complete-action-btn:not(.is-disabled):hover {
+  background-color: #ff85ad;
+  border-color: #ff85ad;
+}
+
+/* ✨ 查看詳情 / 查看收據：白底粉邊 (方角) */
+.detail-btn, .view-receipt-btn {
+  flex: 1;
+  background-color: white;
+  color: #fb7299;
+  border: 1px solid #fb7299;
+  padding: 8px;           /* 對齊妳原本的 delete-action-btn */
+  border-radius: 6px;      /* ✨ 關鍵：改回 6px 方角 */
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.detail-btn:hover, .view-receipt-btn:hover {
+  background-color: #fff0f3;
+}
+/* --- 彈窗背景遮罩 --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明黑 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* 確保在最上層 */
+}
+
+/* --- 彈窗主體 --- */
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #222;
+  text-align: center;
+}
+
+/* --- 輸入框群組 --- */
+.input-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.input-group input,
+.input-group textarea {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px; /* 統一 6px 方角 */
+  font-size: 14px;
+}
+
+.input-group textarea {
+  height: 80px;
+  resize: none;
+}
+
+/* --- 彈窗按鈕區 --- */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 10px;
+  background: #fb7299; /* 妳的主題粉紅 */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+/* ✨ 禁用狀態的樣式 (適用於出貨完成後) */
+.ship-btn.is-disabled {
+  background-color: #e7e7e7; /* 淺灰色底 */
+  border-color: #d9d9d9;     /* 灰色的邊框 */
+  color: #bfbfbf;            /* 文字變淡灰 */
+  cursor: not-allowed;       /* 滑鼠移上去會顯示禁止符號 🚫 */
+
+  /* 確保禁用時，原本的懸浮特效不會動 */
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/*上傳按鈕,備用*/
+.upload-btn.is-disabled {
+  background-color: #f5f5f5;
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
 }
 </style>
