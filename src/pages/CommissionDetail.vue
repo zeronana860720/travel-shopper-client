@@ -17,7 +17,7 @@
 
       <div class="price-section">
         <div class="price-row">
-          <span class="currency">商品原價 NT$</span>
+          <span class="currency">商品原價 {{commissionStore.currentCommission.currency}}$</span>
           <span class="amount">{{ commissionStore.currentCommission.price }}</span>
           <span class="qty"> x {{ commissionStore.currentCommission.quantity }} 件</span>
         </div>
@@ -59,7 +59,7 @@
 
     <div class="detail-right">
       <div class="map-header">
-        <h3>建議購買地點：{{ commissionStore.currentCommission.name }}</h3>
+        <h3>建議購買地點：{{ commissionStore.currentCommission.location }}</h3>
 
         <a :href="commissionStore.currentCommission.mapUrl ?? undefined" target="_blank">
           <p>{{ commissionStore.currentCommission.fullAddress }}</p>
