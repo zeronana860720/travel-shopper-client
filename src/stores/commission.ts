@@ -249,6 +249,23 @@ export const useCommissionStore = defineStore('commission', {
                 console.error('完成訂單失敗：', error);
                 throw error.response?.data || { message: '連線伺服器失敗' };
             }
+        },
+        // 新增審核委託
+        async reviewCommission(serviceCode: string, isPass: boolean, reason: string = '') {
+            try {
+                // 這裡要完全對應你的 ReviewRequestDto 喔！
+                const response = await axios.post('http://127.0.0.1:5275/admin/Review/Pending', {
+                    targetType: "commission",      // 後端檢查需要這個字串
+                    targetCode: serviceCode,       // 對應後端的 req.TargetCode
+                    result: isPass ? 1 : 0,        // 1 = 通過(HandlePass), 0 = 失敗(HandleFail)
+                    reason: reason                 // 審核理由
+                });
+
+                return { success: response.status === 200 };
+            } catch (error: any) {
+                console.error('審核連線發生錯誤：', error);
+                throw new Error(error.response?.data?.message || '審核程序出錯了');
+            }
         }
     }
 });

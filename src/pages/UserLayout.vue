@@ -35,6 +35,10 @@
             <i class="icon-dot"></i>
             <span class="menu-text">訊息中心</span>
           </router-link>
+          <router-link to="/user/review" class="menu-item">
+            <i class="icon-dot"></i>
+            <span class="menu-text">審核</span>
+          </router-link>
           <div class="menu-group">
             <div class="menu-item" @click="toggleOrder">
               <i class="icon-dot"></i>

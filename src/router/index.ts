@@ -94,6 +94,11 @@ const routes:RouteRecordRaw[] = [
                 name:'MessageBox',
                 component:()=>import('../pages/user/MessageBox.vue')
             },
+            {
+              path:'review',
+              name:'Review',
+              component:()=>import('../pages/user/Review.vue')
+            },
 
         ]
     },
