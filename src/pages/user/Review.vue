@@ -51,12 +51,31 @@
     <div v-if="pendingCommissions.length === 0" class="empty-box">
       目前沒有需要審核的委託，辛苦囉！ (｡･ω･｡)
     </div>
+    <div v-if="showRejectModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>審核退回原因 (´•ω•̥`)</h3>
+
+        <div class="input-group">
+          <label>退回原因 *</label>
+          <textarea
+              v-model="rejectReason"
+              placeholder="請詳細說明退回原因，方便使用者修改喔！例如：圖片太模糊、價格不合理等..."
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="showRejectModal = false">取消</button>
+          <button class="confirm-btn" @click="submitReject">確認退回</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts" name = 'Review'>
 import { computed, onMounted } from 'vue';
 import { useCommissionStore } from '@/stores/commission';
+import {ref} from "vue";
 
 // 1. 初始化 Store
 const store = useCommissionStore();
@@ -94,20 +113,39 @@ const handleApprove = async (serviceCode: string) => {
 };
 
 // 5. 實作「審核失敗」
-const handleReject = async (serviceCode: string) => {
-  const reason = prompt('請輸入審核失敗的原因 (´•ω•̥`)');
-  if (reason) {
-    try {
-      const result = await store.rejectCommission(serviceCode, reason);
-      if (result?.success) {
-        alert('已標記為審核失敗');
-        await store.fetchUserManageCommissions(); // 重新整理列表
-      }
-    } catch (error: any) {
-      alert(error.message || '操作失敗');
+// 1. ✨ 當管理員按下「審核失敗」按鈕時
+const handleReject = (serviceCode: string) => {
+  currentTargetCode.value = serviceCode; // 記住這筆委託的身分
+  rejectReason.value = '';               // 清空上次填寫的內容，這很重要喔！
+  showRejectModal.value = true;          // 華麗地打開彈窗 (｡◕∀◕｡)
+};
+
+// 2. ✨ 當管理員在彈窗按下「確認退回」時
+const submitReject = async () => {
+  // 檢查一下有沒有填理由，沒填理由使用者會很困惑的 (´•ω•̥`)
+  if (!rejectReason.value.trim()) {
+    alert('請填寫退回原因唷！');
+    return;
+  }
+
+  try {
+    // 呼叫我們在 Store 寫好的 API Action
+    // 傳入 false 代表審核失敗
+    const result = await store.reviewCommission(currentTargetCode.value, false, rejectReason.value);
+
+    if (result?.success) {
+      alert('已成功退回委託！');
+      showRejectModal.value = false;       // 關閉彈窗
+      await store.fetchUserManageCommissions(); // 刷新列表，讓處理完的項目消失
     }
+  } catch (error: any) {
+    alert(error.message || '連線好像有點問題，請稍後再試');
   }
 };
+// --- 審核退回彈窗相關 ---
+const showRejectModal = ref(false); // 控制彈窗顯示/隱藏
+const currentTargetCode = ref('');  // 紀錄目前正在審核哪一筆
+const rejectReason = ref('');       // 存放管理員輸入的失敗原因
 </script>
 
 <style scoped>
@@ -213,5 +251,95 @@ const handleReject = async (serviceCode: string) => {
 
 .empty-box {
   text-align: center; padding: 100px; color: #bbb;
+}
+/* --- 彈窗背景遮罩：讓後方背景變暗，集中注意力 --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明黑 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* --- 彈窗主體：跟出貨彈窗一樣的白色方塊 --- */
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #222;
+  text-align: center;
+  font-size: 18px;
+}
+
+/* --- 輸入框群組：讓 Label 與 Textarea 垂直排列 --- */
+.input-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.input-group textarea {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  height: 100px;
+  resize: none; /* 禁止使用者自己拉動大小，維持美觀 */
+}
+
+.input-group textarea:focus {
+  outline: none;
+  border-color: #fb7299; /* 聚焦時變粉紅色 */
+}
+
+/* --- 彈窗按鈕區：取消與確認並排 --- */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 10px;
+  background: #fb7299; /* 妳最愛的粉紅色 */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-btn:hover {
+  background-color: #ff85ad;
 }
 </style>

@@ -38,13 +38,13 @@
           >
           <span class="img-tag" :class="getStatusClass(item.status)">{{ item.status }}</span>
 
-          <div
-              v-if="currentTab === 'waiting' || currentTab === 'failed'"
-              class="card-overlay"
-              @click.stop="handleEdit(item.serviceCode)"
-          >
-            <span class="edit-text">編輯委託</span>
-          </div>
+<!--          <div-->
+<!--              v-if="currentTab === 'waiting' || currentTab === 'failed'"-->
+<!--              class="card-overlay"-->
+<!--              @click.stop="handleEdit(item.serviceCode)"-->
+<!--          >-->
+<!--            <span class="edit-text">編輯委託</span>-->
+<!--          </div>-->
         </div>
 
         <div class="card-info">
@@ -66,21 +66,18 @@
           </div>
 
           <div v-if="currentTab === 'failed'" class="failed-reason">
-            <strong>失敗原因：</strong>
+            <strong>失敗原因：{{item.reason}}</strong>
           </div>
 
           <!-- ✨ 操作按鈕區域 -->
           <div class="card-actions">
-            <template v-if="currentTab === 'waiting'">
-<!--              <button class="edit-action-btn" @click.stop="handleEdit(item.serviceCode)">-->
-<!--                <i class="icon">✎</i> 編輯資訊-->
-<!--              </button>-->
+            <template v-if="item.status === '待接單'">
               <button class="delete-action-btn" @click.stop="handleDelete(item.serviceCode)">
-                <i class="icon"></i> 刪除委託
+                刪除委託
               </button>
             </template>
 
-            <template v-else-if="currentTab === 'progress'">
+            <template v-else-if="item.status !== '待接單' && item.status !== '審核中' && item.status !== '審核失敗' && item.status !== '已完成'">
               <button class="view-receipt-btn" @click.stop="handleViewReceipt(item.serviceCode)">
                 查看收據
               </button>
@@ -94,15 +91,15 @@
               </button>
             </template>
 
-            <template v-else-if="currentTab === 'pending'">
+            <template v-else-if="item.status === '審核中'">
               <button class="delete-action-btn full-width" @click.stop="handleDelete(item.serviceCode)">
-                <i class="icon"></i> 刪除委託
+                刪除委託
               </button>
             </template>
 
-            <template v-else-if="currentTab === 'failed'">
-              <button class="edit-action-btn full-width" @click.stop="handleEdit(item.serviceCode)">
-                <i class="icon">✎</i> 重新編輯
+            <template v-else-if="item.status === '審核失敗'">
+              <button class="delete-action-btn full-width" @click.stop="handleDelete(item.serviceCode)">
+                刪除失敗委託
               </button>
             </template>
           </div>
@@ -206,12 +203,12 @@ const getStatusClass = (status: string) => {
   }
 };
 
-// 6. 操作函式（之後可以再補上 API 呼叫）
-const handleEdit = (serviceCode: string) => {
-  // 使用 router.push 跳轉到我們在路由設定的那個 path
-  // 網址會變成類似 /commission/edit/TASK12345
-  router.push(`/commission/edit/${serviceCode}`);
-};
+// // 6. 操作函式（之後可以再補上 API 呼叫）
+// const handleEdit = (serviceCode: string) => {
+//   // 使用 router.push 跳轉到我們在路由設定的那個 path
+//   // 網址會變成類似 /commission/edit/TASK12345
+//   router.push(`/commission/edit/${serviceCode}`);
+// };
 
 const handleDelete = async (serviceCode: string) => {
   // 1. 先問問使用者是不是真的要刪除 (｡•ㅅ•｡)
