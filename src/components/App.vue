@@ -18,18 +18,15 @@
              @mouseenter="isOpen = true"
              @mouseleave="isOpen = false"
         >
-          <span class="selected-category">{{ selectCategory }}</span>
-          <i class="arrow-down"></i>
-
-          <transition name="dropdown-slide">
-            <ul class="dropdown-menu" v-show="isOpen">
-              <li v-for="item in categories" :key="item" @click.stop="handleSelect(item)">{{ item }}</li>
-            </ul>
-          </transition>
         </div>
-        <input type="text" placeholder="探索感興趣的內容..." />
-        <button class="search-btn" type="button">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+        <input
+            v-model="searchKeyword"
+            type="text"
+            placeholder="搜索感興趣的委託"
+            @keyup.enter="handleSearch"
+        />
+        <button class="search-btn" type="button" @click="handleSearch">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
         </button>
@@ -142,6 +139,25 @@ const getImageUrl = (path: string) => {
   if (path.startsWith('blob:') || path.startsWith('data:')) return path;
   return `http://localhost:5275${path}`;
 };
+
+// 建立一個空字串儲存搜尋字串
+const searchKeyword = ref('');
+
+const handleSearch =()=>{
+  router.push({
+    path:'/commissions',
+    query:{keyword:searchKeyword.value},
+    // query -> 固定關鍵字,它的作用是在網址（URL）後面加上問號 ? 開頭的參數（稱為 Query String）
+    // 因為後端參數是這樣 ?參數就要用:query
+    /*
+    * [FromQuery] string? keyword,      // 關鍵字 (Title, Description...)
+      [FromQuery] string? location,     // 地區篩選
+      [FromQuery] decimal? minPrice,    // 價格下限
+      [FromQuery] decimal? maxPrice,    // 價格上限
+      [FromQuery] string? sort = null   // 多重排序 (如: "price_asc,deadline_desc"
+    * */
+  });
+}
 </script>
 
 
@@ -152,7 +168,7 @@ const getImageUrl = (path: string) => {
   justify-content: space-between;
   align-items: center;
   padding: 0 40px;
-  height: 64px;
+  height: 100px;
   background-color: rgba(255, 255, 255, 0.95);
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -164,16 +180,16 @@ const getImageUrl = (path: string) => {
 
 .nav-left-group { display: flex; align-items: center; gap: 30px; }
 .logo-wrapper { display: flex; align-items: center; cursor: pointer; }
-.logo-img { width: 30px; height: 30px; border-radius: 6px; margin-right: 8px; }
-.logo-text { font-size: 20px; font-weight: 900; color: #fb7299; letter-spacing: -0.5px; }
+.logo-img { width: 50px; height: 50px; border-radius: 6px; margin-right: 8px; }
+.logo-text { font-size: 30px; font-weight: 900; color: #fb7299; letter-spacing: -0.5px; }
 .nav-links { display: flex; gap: 20px; }
-.nav-link-item { font-size: 15px; color: #18191c; cursor: pointer; position: relative; transition: color 0.3s; }
+.nav-link-item { font-size: 20px; color: #18191c; cursor: pointer; position: relative; transition: color 0.3s; }
 .nav-link-item:hover { color: #fb7299; }
 .nav-link-item::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background-color: #fb7299; transition: width 0.3s; }
 .nav-link-item:hover::after { width: 100%; }
 
-.nav-center { flex: 1; max-width: 420px; margin: 0 20px; }
-.search-bar { display: flex; align-items: center; background-color: #f1f2f3; border-radius: 8px; padding: 0 8px 0 16px; height: 36px; border: 1px solid transparent; transition: 0.3s; }
+.nav-center { flex: 1; max-width: 600px; margin: 0 20px; }
+.search-bar { display: flex; align-items: center; background-color: #f1f2f3; border-radius: 8px; padding: 0 8px 0 16px; height: 50px; border: 1px solid transparent; transition: 0.3s; }
 .search-bar:focus-within { background-color: white; border-color: #fb7299; }
 .search-dropdown { position: relative; display: flex; align-items: center; padding-right: 12px; margin-right: 12px; font-size: 13px; color: #61666d; border-right: 1px solid #e3e5e7; cursor: pointer; }
 .arrow-down { border-top: 4px solid #9499a0; border-left: 3px solid transparent; border-right: 3px solid transparent; margin-left: 6px; }
@@ -190,13 +206,13 @@ const getImageUrl = (path: string) => {
 .dropdown-slide-enter-active, .dropdown-slide-leave-active { transition: all 0.4s ease; }
 .dropdown-slide-enter-from, .dropdown-slide-leave-to { opacity: 0; transform: translateY(-10px); }
 
-.search-bar input { flex: 1; background: transparent; border: none; outline: none; font-size: 13px; }
+.search-bar input { flex: 1; background: transparent; border: none; outline: none; font-size: 16px; }
 .search-btn { background: transparent; border: none; color: #61666d; cursor: pointer; padding: 4px; }
 .search-btn:hover { color: #fb7299; }
 
 .nav-right { display: flex; align-items: center; gap: 20px; }
 .action-group { display: flex; gap: 10px; }
-.action-btn-outline { background: white; color: #61666d; border: 1px solid #ccd0d7; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+.action-btn-outline { background: white; color: #61666d; border: 1px solid #ccd0d7; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
 .action-btn-outline:hover { color: #fb7299; border-color: #fb7299; background-color: #fff0f3; }
 .btn-icon { font-size: 16px; font-weight: 400; color: #fb7299; }
 
@@ -208,8 +224,8 @@ const getImageUrl = (path: string) => {
 
 .user-profile-wrapper {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,13 +239,13 @@ const getImageUrl = (path: string) => {
 }
 
 .avatar-img {
-  width: 50px; height: 50px; border-radius: 50%;
+  width: 70px; height: 70px; border-radius: 50%;
   border: 1px solid #e3e5e7; background-color: white;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .user-profile-wrapper:hover .avatar-img {
-  transform: scale(1.5) translateY(5px);
+  transform: scale(1.2) translateY(5px);
   border-color: #fb7299;
 }
 
@@ -273,12 +289,12 @@ const getImageUrl = (path: string) => {
 .user-name { color: #fb7299; font-size: 17px; font-weight: bold; margin-bottom: 4px; }
 .badge-vip { background: #fff0f3; color: #fb7299; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
 .card-menu { list-style: none; padding: 10px 0; border-bottom: 1px solid #f1f2f3; }
-.card-menu li { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; cursor: pointer; font-size: 13px; color: #61666d; border-radius: 6px; transition: 0.2s; }
+.card-menu li { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; cursor: pointer; font-size: 16px; color: #61666d; border-radius: 6px; transition: 0.2s; }
 .card-menu li:hover { background-color: #f6f7f8; color: #fb7299; }
 .arrow { color: #c9ccd0; font-size: 9px; font-style: normal; }
 .logout-item { padding-top: 15px; color: #9499a0; font-size: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
 .logout-item:hover { color: #fb7299; }
 
-.main-content { padding-top: 64px; }
+.main-content { padding-top: 10px; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 </style>
