@@ -147,7 +147,7 @@ html, body {
   background-color: #f4f5f7;
   min-height: 100vh;
   /* ✨ 頂部留 80px 避開 Navbar，底部留 20px */
-  padding: 5px 0 20px 0;
+  padding: 100px 0 20px 0;
   display: flex;
   justify-content: center;
   width: 100%;

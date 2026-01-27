@@ -173,9 +173,9 @@ const handleAccept = async () => {
 <style scoped>
 .detail-container {
   /* ✨ 優化點：放寬最大寬度，減少兩側留白 */
-  max-width: 1600px;
-  width: 95%;
-  margin: 20px auto 40px;
+  max-width: 1800px;
+  width: 98%;
+  margin: 100px auto 40px;
   display: flex;
   gap: 30px;
   padding: 40px;
