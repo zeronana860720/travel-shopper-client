@@ -33,7 +33,7 @@
           </div>
           <div class="detail-row">
             <span class="label">截止時間：</span>
-            <span class="value">{{ item.deadline }}</span>
+            <span class="value">{{ formatDate(item.endAt) }}</span>
           </div>
 
           <div class="card-actions">
@@ -146,6 +146,16 @@ const submitReject = async () => {
 const showRejectModal = ref(false); // 控制彈窗顯示/隱藏
 const currentTargetCode = ref('');  // 紀錄目前正在審核哪一筆
 const rejectReason = ref('');       // 存放管理員輸入的失敗原因
+
+const formatDate = (dateStr: string | undefined) => {
+  if (!dateStr) return '無日期';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\//g, '-'); // 把 / 換成 -
+};
 </script>
 
 <style scoped>

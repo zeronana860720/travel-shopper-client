@@ -22,4 +22,5 @@ export interface Commission {
     mapUrl?: string|null;
     currency: string;
     reason:string;
+    endAt?: string;
 }

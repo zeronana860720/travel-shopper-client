@@ -297,7 +297,8 @@ body {
 
 .commission-page-layout {
   display: flex;
-  height: calc(100vh - 84px);
+  margin-top: 85px;
+  height: calc(100vh - 100px);
   width: 100%;
   background-color: #f0f2f5;
   font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;

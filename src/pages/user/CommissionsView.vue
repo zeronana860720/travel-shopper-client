@@ -62,7 +62,7 @@
 
           <div class="detail-row">
             <span class="label">截止日期：</span>
-            <span class="value date">{{ formatDate(item.createdAt) }}</span>
+            <span class="value date">{{ formatDate(item.endAt) }}</span>
           </div>
 
           <div v-if="currentTab === 'failed'" class="failed-reason">
