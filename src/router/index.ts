@@ -52,6 +52,12 @@ const routes:RouteRecordRaw[] = [
         name:'commissions-detail',
         component: () => import('../pages/CommissionDetail.vue')
     },
+    // ✨ 新增：賣場管理路由
+    {
+        path: '/store/:storeId/manage',
+        name: 'StoreManage',
+        component: () => import('../pages/user/StoreManage.vue')
+    },
     // --- 新增：會員中心嵌套路由 ---
     {
         path: '/user',

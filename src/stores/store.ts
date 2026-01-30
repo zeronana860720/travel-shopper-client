@@ -51,6 +51,32 @@ export const useStoreStore = defineStore('store', {
             } catch (error: any) {
                 throw error.response?.data || { message: '建立失敗' };
             }
+        },
+        // ✨ 新增:送出賣場審核
+        async submitStoreForReview(storeId: number) {
+            try {
+                const token = localStorage.getItem('token');
+
+                // ✨ 改用 Promise.reject
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/createstore/${storeId}/submit`,
+                    {},
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                await this.fetchMyStores();
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '送出審核失敗' };
+            }
         }
+
+
     }
 });
