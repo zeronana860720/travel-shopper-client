@@ -28,7 +28,7 @@
           </button>
         </div>
 
-        <button class="add-store-btn" @click="openCreateModal">
+        <button class="add-store-btn" @click="openCreateModel">
           <i class="icon">+</i> 建立賣場
         </button>
       </div>
@@ -57,38 +57,48 @@
         </div>
 
         <div class="card-info">
-          <h3 class="product-name">{{ store.storeName }}</h3>
-
-          <div class="detail-row">
-            <span class="label">建立日期：</span>
-            <span class="value">{{ formatDate(store.createdAt) }}</span>
+          <div class="info-header">
+            <h3 class="product-name">{{ store.storeName }}</h3>
           </div>
 
-          <div class="detail-row">
-            <span class="label">狀態：</span>
-            <span class="value" :class="getStatusTextColor(store.status)">
-              {{ getStatusLabel(store.status) }}
-            </span>
+          <div class="store-description">
+            <span v-if="store.storeDescription">{{ store.storeDescription }}</span>
+            <span v-else class="placeholder-text">這間店主很神祕，還沒寫下任何介紹唷 (๑• . •๑)</span>
           </div>
 
-          <div class="card-actions">
-            <template v-if="store.status === 0 || store.status === 2">
-              <button class="edit-action-btn" @click.stop="handleEditStore(store.storeId)">
-                修改賣場資訊
-              </button>
-            </template>
+          <div class="info-footer">
+            <div class="meta-group">
+              <div class="detail-row">
+                <span class="label">建立日期：</span>
+                <span class="value">{{ formatDate(store.createdAt) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">狀態：</span>
+                <span class="value" :class="getStatusTextColor(store.status)">
+                  {{ getStatusLabel(store.status) }}
+                </span>
+              </div>
+            </div>
 
-            <template v-else-if="store.status === 3">
-              <button class="edit-action-btn" @click.stop="handleEditStore(store.storeId)">
-                進入賣場管理
-              </button>
-            </template>
+            <div class="card-actions">
+              <template v-if="store.status === 0 || store.status === 2">
+                <button class="edit-action-btn" @click.stop="handleEditStore(store.storeId)">
+                  修改資訊
+                </button>
+              </template>
 
-            <template v-else>
-              <button class="edit-action-btn disabled" disabled>
-                審核進行中...
-              </button>
-            </template>
+              <template v-else-if="store.status === 3">
+                <button class="edit-action-btn" @click.stop="handleEditStore(store.storeId)">
+                  管理賣場
+                </button>
+              </template>
+
+              <template v-else>
+                <button class="edit-action-btn disabled" disabled>
+                  審核中
+                </button>
+              </template>
+            </div>
           </div>
         </div>
       </div>
@@ -113,6 +123,15 @@
               maxlength="100"
               class="styled-input"
           />
+        </div>
+        <div class="input-group">
+          <label>賣場描述（選填）</label>
+          <textarea
+              v-model="newStoreForm.storeDescription"
+              placeholder="簡單介紹一下你的賣場吧！讓客人更了解你喔～"
+              rows="4"
+              class="styled-input textarea-fix"
+          ></textarea>
         </div>
 
         <div class="input-group">
@@ -169,7 +188,10 @@ const imagePreview = ref<string | null>(null);
 
 const newStoreForm = ref({
   storeName: '',
+  // 給描述用的
+  storeDescription: '',
   storeImage: null as File | null
+
 });
 
 const defaultImage = 'https://i.pinimg.com/1200x/f7/d1/36/f7d136d44bbad6846e1385711a6a634b.jpg';
@@ -198,6 +220,7 @@ interface StoreItem {
   status: number; // 0:草稿, 1:審核中, 2:失敗, 3:已發布
   createdAt: string;
   storeImage?: string;
+  storeDescription?: string;
 }
 
 // 過濾器
@@ -265,9 +288,9 @@ const formatDate = (dateStr: string | undefined) => {
 };
 
 // --- 操作函式 ---
-const openCreateModal = () => {
+const openCreateModel = () => {
   showCreateModal.value = true;
-  newStoreForm.value = { storeName: '', storeImage: null };
+  newStoreForm.value = { storeName: '', storeImage: null ,storeDescription: '' };
   imagePreview.value = null;
 };
 
@@ -295,13 +318,17 @@ const handleCreateStore = async () => {
   try {
     const formData = new FormData();
     formData.append('storeName', newStoreForm.value.storeName);
+    // 把描述文字也塞進包裹裡
+    if (newStoreForm.value.storeDescription) {
+      formData.append('storeDescription', newStoreForm.value.storeDescription);
+    }
     if (newStoreForm.value.storeImage) {
       formData.append('storeImage', newStoreForm.value.storeImage);
     }
     await store.createStore(formData);
     alert(`賣場「${newStoreForm.value.storeName}」建立成功！`);
     showCreateModal.value = false;
-    openCreateModal();
+    openCreateModel();
   } catch (error: any) {
     alert(error.message || '建立失敗');
   }
@@ -315,15 +342,15 @@ const handleEditStore = (storeId: number) => {
 <style scoped>
 .shop-page {
   padding: 20px;
-  max-width: 98%;
+  max-width: 98%; /* 讓頁面盡量寬，按鈕才會靠邊 */
   margin: 0 auto;
   font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
 }
 
-/* --- Header 佈局 (重點修改) --- */
+/* --- Header 佈局 --- */
 .page-header {
   display: flex;
-  justify-content: space-between; /* 左右分佈 */
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
 }
@@ -334,7 +361,7 @@ const handleEditStore = (storeId: number) => {
   align-items: center;
 }
 
-/* 右側 Header：按鈕靠在一起 */
+/* 右側 Header */
 .header-right {
   display: flex;
   align-items: center;
@@ -391,34 +418,40 @@ const handleEditStore = (storeId: number) => {
   box-shadow: 0 6px 20px rgba(251, 114, 153, 0.4);
 }
 
-/* --- 網格佈局 --- */
+/* --- ✨ 列表佈局 (原網格改為垂直列表) --- */
 .shop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 25px;
+  display: flex;           /* 改成 Flex */
+  flex-direction: column;  /* 垂直排列 */
+  gap: 20px;               /* 卡片之間的距離 */
 }
 
-/* --- 卡片樣式 --- */
+/* --- ✨ 卡片樣式 (改成橫條狀) --- */
 .simple-card {
   background: white;
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
   border: 1px solid #f0f0f0;
+
+  /* 讓內部變成橫向排列 */
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  height: 200px;           /* 設定固定高度，讓版面整齊 */
   box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
 .simple-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
   border-color: #ffdae3;
 }
 
+/* --- ✨ 圖片區塊 (固定寬度在左側) --- */
 .card-img-box {
   position: relative;
-  height: 160px;
+  width: 280px;        /* 固定寬度 */
+  height: 100%;        /* 填滿高度 */
+  flex-shrink: 0;      /* 防止被擠壓 */
   background-color: #f8f8f8;
   overflow: hidden;
 }
@@ -434,7 +467,7 @@ const handleEditStore = (storeId: number) => {
   transform: scale(1.05);
 }
 
-/* 狀態標籤 (圖片右上角) */
+/* 狀態標籤 */
 .img-tag {
   position: absolute;
   top: 12px;
@@ -448,13 +481,11 @@ const handleEditStore = (storeId: number) => {
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
-/* 背景顏色 Class */
 .published { background-color: #fb7299; }
 .pending   { background-color: #ffb11b; }
 .failed    { background-color: #9499a0; }
 .draft     { background-color: #00aeec; }
 
-/* 文字顏色 Class (用於資訊欄) */
 .text-published { color: #fb7299; font-weight: bold; }
 .text-pending   { color: #ffb11b; font-weight: bold; }
 .text-failed    { color: #9499a0; font-weight: bold; }
@@ -487,50 +518,87 @@ const handleEditStore = (storeId: number) => {
   backdrop-filter: blur(4px);
 }
 
+/* --- ✨ 右側內容區塊 (重新排版) --- */
 .card-info {
-  padding: 16px;
-  flex-grow: 1;
+  padding: 20px;
+  flex-grow: 1;           /* 填滿剩餘寬度 */
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* 內部維持垂直排列 */
+  justify-content: space-between; /* 讓內容上下撐開 */
+}
+
+/* 標題與上方資訊 */
+.info-header {
+  margin-bottom: 10px;
 }
 
 .product-name {
-  font-size: 16px;
+  font-size: 20px;       /* 橫條狀可以讓標題大一點 */
   color: #333;
-  margin-bottom: 12px;
+  margin-bottom: 5px;
   font-weight: bold;
-  white-space: nowrap;
+}
+
+/* ✨ 描述區塊 (預留空間) */
+/* 之後你在 HTML 加上 <div class="store-description">...</div> 就會生效 */
+.store-description {
+  flex-grow: 1;          /* 自動佔據中間所有空白 */
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 15px;
   overflow: hidden;
-  text-overflow: ellipsis;
+
+  /* 多行省略 (限制顯示 3 行) */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.placeholder-text {
+  color: #bbb;
+  font-style: italic;
+}
+
+/* 底部資訊區 (排成一列) */
+.info-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; /* 對齊底部 */
+}
+
+.meta-group {
+  display: flex;
+  gap: 20px;
 }
 
 .detail-row {
   display: flex;
-  font-size: 13px;
-  margin-bottom: 8px;
+  font-size: 14px;
   align-items: center;
 }
 
-.label { color: #9499a1; width: 70px; }
+.label { color: #9499a1; margin-right: 5px; }
 .value { color: #333; font-weight: 500; }
 
+/* 按鈕區域 */
 .card-actions {
-  margin-top: auto;
-  padding-top: 15px;
-  border-top: 1px dashed #eee;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .edit-action-btn {
-  width: 100%;
+  padding: 8px 24px;      /* 加寬按鈕 */
   background: #fff5f7;
   border: 1px solid #ffdae3;
   color: #fb7299;
-  padding: 8px;
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .edit-action-btn:hover:not(:disabled) {
@@ -549,10 +617,9 @@ const handleEditStore = (storeId: number) => {
   padding: 100px 0;
   text-align: center;
   color: #bbb;
-  grid-column: 1 / -1;
 }
 
-/* --- 彈窗樣式 --- */
+/* --- 彈窗樣式 (維持不變) --- */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
