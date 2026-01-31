@@ -188,7 +188,54 @@ export const useStoreStore = defineStore('store', {
             } catch (error: any) {
                 throw error.response?.data || { message: '取得待審核賣場失敗' };
             }
+        },
+
+        // 審核通過商品
+        async approveProduct(productId: number) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/review/products/${productId}/approveproduct`,
+                    {},
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '審核通過失敗' };
+            }
+        },
+        // 退回商品
+        async rejectProduct(productId: number, reason: string) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/review/products/${productId}/rejectproduct`,
+                    { comment: reason },  // ← 後端期望的欄位名是 comment
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '退回商品失敗' };
+            }
         }
+
+
 
 
 

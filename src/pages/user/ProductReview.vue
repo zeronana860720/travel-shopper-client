@@ -2,7 +2,7 @@
   <div class="products-review-page">
     <div class="page-header">
       <h2>商品審核中心 (๑•̀ㅂ•́)و✧</h2>
-      <p>審核通過後商品就會上架囉~</p>
+<!--      <p>審核通過後商品就會上架囉~</p>-->
     </div>
 
     <div class="products-grid">

@@ -212,7 +212,7 @@ const filteredProducts = computed(() => {
 
     // 已上架 (審核通過 且 isActive = true)
     if (activeFilter.value === 'on-sale') {
-      return product.status === 3 && product.isActive === true;
+      return product.status === 3;
     }
 
     // 已下架 (審核通過 且 isActive = false)
@@ -312,30 +312,19 @@ const getStatusClass = (status: number | undefined) => {
 };
 
 const getProductStatusLabel = (product: any) => {
-  // 先判斷審核狀態
   if (product.status === 0) return '草稿';
   if (product.status === 1) return '審核中';
   if (product.status === 2) return '審核失敗';
-
-  // 審核通過 (status === 3) 才看上下架狀態
-  if (product.status === 3) {
-    return product.isActive ? '已上架' : '已下架';
-  }
-
+  if (product.status === 3) return '已上架';  // ← 改這裡
   return '未知';
 };
 
 // 商品狀態樣式
 const getProductStatusClass = (product: any) => {
-  if (product.status === 0) return 'draft';        // 草稿 - 藍色
-  if (product.status === 1) return 'pending';      // 審核中 - 橘色
-  if (product.status === 2) return 'failed';       // 審核失敗 - 灰色
-
-  // 審核通過才看上下架
-  if (product.status === 3) {
-    return product.isActive ? 'on-sale' : 'off-sale';
-  }
-
+  if (product.status === 0) return 'draft';
+  if (product.status === 1) return 'pending';
+  if (product.status === 2) return 'failed';
+  if (product.status === 3) return 'on-sale';  // ← 改這裡
   return 'pending';
 };
 
