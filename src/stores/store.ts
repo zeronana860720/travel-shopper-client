@@ -146,7 +146,51 @@ export const useStoreStore = defineStore('store', {
             } catch (error: any) {
                 throw error.response?.data || { message: '取得商品失敗' };
             }
+        },
+        // 取得所有待審核商品 (管理員用)
+        async fetchPendingProducts() {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.get(
+                    'http://127.0.0.1:5275/api/review/products/newpending',
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '取得待審核商品失敗' };
+            }
+        },
+        // 取得所有待審核賣場
+        async fetchPendingStores() {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.get(
+                    'http://127.0.0.1:5275/api/review/storepending',
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '取得待審核賣場失敗' };
+            }
         }
+
+
 
 
 

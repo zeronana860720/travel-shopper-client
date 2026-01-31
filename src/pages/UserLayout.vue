@@ -35,10 +35,30 @@
             <i class="icon-dot"></i>
             <span class="menu-text">訊息中心</span>
           </router-link>
-          <router-link to="/user/review" class="menu-item">
-            <i class="icon-dot"></i>
-            <span class="menu-text">審核中心</span>
-          </router-link>
+          <div class="menu-group">
+            <div class="menu-item" @click="toggleReview">
+              <i class="icon-dot"></i>
+              <span class="menu-text">審核中心</span>
+              <i class="arrow-icon" :class="{ expanded: isReviewOpen }">▼</i>
+            </div>
+
+            <div v-show="isReviewOpen" class="sub-menu">
+              <router-link to="/user/review" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">委託審核</span>
+              </router-link>
+              <router-link to="/user/product-review" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">商品審核</span>
+              </router-link>
+              <router-link to="/user/store-review" class="menu-item sub-menu-item">
+                <i class="icon-dot"></i>
+                <span class="menu-text">賣場審核</span>
+              </router-link>
+            </div>
+
+          </div>
+
           <div class="menu-group">
             <div class="menu-item" @click="toggleOrder">
               <i class="icon-dot"></i>
@@ -104,12 +124,19 @@ const currentUserAvatar = ref(localStorage.getItem('userAvatar') || '');
 const isWalletOpen = ref(false);
 const isOrderOpen = ref(false);
 
+//
+const isReviewOpen = ref(false);
+
 
 const toggleWallet = () => {
   isWalletOpen.value = !isWalletOpen.value;
 }
 const toggleOrder = ()=>{
   isOrderOpen.value = !isOrderOpen.value;
+}
+// 切換展開樣式
+const toggleReview = ()=>{
+  isReviewOpen.value = !isReviewOpen.value;
 }
 const handleLogout = () => {
   if (confirm('確定要登出嗎？')) {

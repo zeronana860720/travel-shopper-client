@@ -111,6 +111,18 @@ const routes:RouteRecordRaw[] = [
               name:'Review',
               component:()=>import('../pages/user/Review.vue')
             },
+            {
+                // 是商品,不想改路由了
+                path:'product-review',
+                name:'productReview',
+                component:()=>import('../pages/user/ProductReview.vue')
+            },
+            {
+                // 是賣場
+                path:'store-review',
+                name:'StoreReview',
+                component:()=>import('../pages/user/StoreReview.vue')
+            }
 
         ]
     },
