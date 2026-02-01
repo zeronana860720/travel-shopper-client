@@ -306,7 +306,64 @@ export const useStoreStore = defineStore('store', {
             } catch (error: any) {
                 throw error.response?.data || { message: '更新賣場失敗' };
             }
+        },
+
+        // 關閉賣場
+        async closeStore(storeId: number) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/createstore/${storeId}/close`,
+                    {},  // POST 但不需要 body
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                // 成功後重新抓取賣場列表
+                await this.fetchMyStores();
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '關閉賣場失敗' };
+            }
+        },
+        // 重新啟用賣場
+        async reopenStore(storeId: number) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/createstore/${storeId}/reopen`,
+                    {},  // POST 但不需要 body
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                // 成功後重新抓取賣場列表
+                await this.fetchMyStores();
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '啟用賣場失敗' };
+            }
         }
+
+
 
 
 

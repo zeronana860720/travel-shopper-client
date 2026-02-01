@@ -16,7 +16,6 @@
               :alt="currentStore?.storeName"
               class="store-cover"
           >
-
         </div>
         <div class="store-basic">
           <h2 class="store-name">{{ currentStore?.storeName }}</h2>
@@ -25,7 +24,7 @@
               {{ getStatusLabel(currentStore?.status) }}
             </span>
             <span class="created-date">建立於 {{ formatDate(currentStore?.createdAt) }}</span>
-            <!-- ✨ 新增:草稿狀態才顯示送審按鈕 -->
+            <!-- ✨ 草稿狀態才顯示送審按鈕 -->
             <button
                 v-if="currentStore?.status === 0"
                 class="submit-review-btn"
@@ -61,7 +60,7 @@
           新增商品
         </button>
       </div>
-      <!-- 篩選按鈕區 -->
+
       <!-- 篩選按鈕區 -->
       <div class="tab-switcher">
         <div class="tab-group">
@@ -95,9 +94,7 @@
         </div>
       </div>
 
-
-
-      <!-- 商品網格 (4格) -->
+      <!-- 商品網格 -->
       <div class="products-grid">
         <div
             v-for="product in filteredProducts"
@@ -110,10 +107,9 @@
                 :src="product.imageUrl || defaultProductImage"
                 :alt="product.productName"
             >
-            <!-- ✓ 這裡改成傳整個 product -->
             <span class="product-status-tag" :class="getProductStatusClass(product)">
-        {{ getProductStatusLabel(product) }}
-      </span>
+              {{ getProductStatusLabel(product) }}
+            </span>
           </div>
 
           <div class="product-body">
@@ -130,7 +126,6 @@
           </div>
         </div>
       </div>
-
 
       <!-- 空狀態 -->
       <div v-if="products.length === 0" class="empty-state">
@@ -151,77 +146,92 @@
         </p>
       </div>
     </div>
-  </div>
-  <!-- 編輯賣場彈窗 -->
-  <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
-    <div class="modal-content edit-modal">
-      <div class="modal-header">
-        <h3>編輯賣場資訊</h3>
-        <button class="close-icon" @click="showEditModal = false">✕</button>
-      </div>
 
-      <div class="input-group">
-        <label>賣場名稱 <span class="required">*</span></label>
-        <input
-            v-model="editStoreForm.storeName"
-            placeholder="輸入賣場名稱"
-            maxlength="100"
-            class="styled-input"
-        />
-      </div>
+    <!-- 編輯賣場彈窗 -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal-content edit-modal">
+        <div class="modal-header">
+          <h3>編輯賣場資訊</h3>
+          <button class="close-icon" @click="showEditModal = false">✕</button>
+        </div>
 
-      <div class="input-group">
-        <label>賣場描述</label>
-        <textarea
-            v-model="editStoreForm.storeDescription"
-            placeholder="簡單介紹一下你的賣場吧！"
-            rows="4"
-            class="styled-input textarea-fix"
-        ></textarea>
-      </div>
-
-      <div class="input-group">
-        <label>賣場封面</label>
-        <div class="upload-box" @click="triggerFileSelect">
+        <div class="input-group">
+          <label>賣場名稱 <span class="required">*</span></label>
           <input
-              type="file"
-              ref="storeImageFileRef"
-              accept="image/*"
-              @change="handleImageSelect"
-              style="display: none"
+              v-model="editStoreForm.storeName"
+              placeholder="輸入賣場名稱"
+              maxlength="100"
+              class="styled-input"
           />
+        </div>
 
-          <div v-if="imagePreview" class="preview-container">
-            <img :src="imagePreview" class="preview-img" alt=""/>
-            <button class="remove-img-btn" @click.stop="removeImage">✕</button>
-          </div>
+        <div class="input-group">
+          <label>賣場描述</label>
+          <textarea
+              v-model="editStoreForm.storeDescription"
+              placeholder="簡單介紹一下你的賣場吧！"
+              rows="4"
+              class="styled-input textarea-fix"
+          ></textarea>
+        </div>
 
-          <div v-else class="upload-placeholder">
-            <span class="plus-icon">+</span>
-            <span>點擊上傳封面圖</span>
+        <div class="input-group">
+          <label>賣場封面</label>
+          <div class="upload-box" @click="triggerFileSelect">
+            <input
+                type="file"
+                ref="storeImageFileRef"
+                accept="image/*"
+                @change="handleImageSelect"
+                style="display: none"
+            />
+
+            <div v-if="imagePreview" class="preview-container">
+              <img :src="imagePreview" class="preview-img" alt=""/>
+              <button class="remove-img-btn" @click.stop="removeImage">✕</button>
+            </div>
+
+            <div v-else class="upload-placeholder">
+              <span class="plus-icon">+</span>
+              <span>點擊上傳封面圖</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="modal-actions-with-delete">
-        <button class="delete-btn" @click="handleDeleteStore">
-          刪除賣場
-        </button>
-        <div class="right-actions">
-          <button class="cancel-btn" @click="showEditModal = false">取消</button>
+        <div class="modal-actions-with-delete">
+          <!-- 根據賣場狀態顯示不同按鈕 -->
           <button
-              class="confirm-btn"
-              :disabled="!editStoreForm.storeName.trim()"
-              @click="handleSaveEdit"
+              v-if="currentStore?.status === 5"
+              class="reopen-btn"
+              @click="handleReopenStore"
           >
-            儲存修改
+            重新啟用
           </button>
+          <button
+              v-else
+              class="delete-btn"
+              @click="handleDeleteStore"
+          >
+            關閉賣場
+          </button>
+
+          <div class="right-actions">
+            <button class="cancel-btn" @click="showEditModal = false">取消</button>
+            <button
+                class="confirm-btn"
+                :disabled="!editStoreForm.storeName.trim()"
+                @click="handleSaveEdit"
+            >
+              儲存修改
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-
 </template>
+
+
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
@@ -338,6 +348,8 @@ const getStatusLabel = (status: number | undefined) => {
     case 1: return '審核中';
     case 2: return '發布失敗';
     case 3: return '已發布';
+    case 4: return '停權';          // ← 加這行
+    case 5: return '已關閉';        // ← 加這行
     default: return '未知';
   }
 };
@@ -348,6 +360,8 @@ const getStatusClass = (status: number | undefined) => {
     case 1: return 'pending';
     case 2: return 'failed';
     case 0: return 'draft';
+    case 4: return 'banned';        // ← 加這行
+    case 5: return 'closed';        // ← 加這行
     default: return 'pending';
   }
 };
@@ -357,16 +371,22 @@ const getProductStatusLabel = (product: any) => {
   if (product.status === 1) return '審核中';
   if (product.status === 2) return '審核失敗';
   if (product.status === 3) return '已上架';
+  if (product.status === 4) return '已下架';
+  if (product.status === 5) return '已撤回';
   return '未知';
 };
+
 
 const getProductStatusClass = (product: any) => {
   if (product.status === 0) return 'draft';
   if (product.status === 1) return 'pending';
   if (product.status === 2) return 'failed';
   if (product.status === 3) return 'on-sale';
+  if (product.status === 4) return 'off-sale';
+  if (product.status === 5) return 'withdrawn';
   return 'pending';
 };
+
 
 // --- 操作函式 ---
 const openAddProductModal = () => {
@@ -511,26 +531,27 @@ const handleSaveEdit = async () => {
 };
 
 // 刪除賣場
+// ✨ 關閉賣場 (原本的刪除改成關閉)
 const handleDeleteStore = async () => {
   const result = await Swal.fire({
-    title: '確定要刪除這個賣場嗎？',
-    text: '刪除後將無法復原唷！(｡•́︿•̀｡)',
+    title: '確定要關閉這個賣場嗎？',
+    text: '關閉後賣場和所有商品都會下架唷！(｡•́︿•̀｡)',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ff4d4f',
     cancelButtonColor: '#9499a0',
-    confirmButtonText: '確定刪除',
+    confirmButtonText: '確定關閉',
     cancelButtonText: '取消'
   });
 
   if (result.isConfirmed) {
     try {
-      // TODO: 這裡你要在 store.ts 加上對應的 API 方法
-      // await store.deleteStore(storeId.value);
+      await store.closeStore(storeId.value);
 
       Swal.fire({
         icon: 'success',
-        title: '賣場已刪除',
+        title: '賣場已關閉',
+        text: '所有商品已下架 (๑˃ᴗ˂)ﻭ',
         confirmButtonColor: '#fb7299',
         timer: 2000
       });
@@ -538,17 +559,59 @@ const handleDeleteStore = async () => {
       router.push('/shop');
 
     } catch (error: unknown) {
-      const errorMessage = (error as { message?: string })?.message || '刪除失敗';
+      const errorMessage = (error as { message?: string })?.message || '關閉失敗';
 
       Swal.fire({
         icon: 'error',
-        title: '刪除失敗 (´•ω•̥`)',
+        title: '關閉失敗 (´•ω•̥`)',
         text: errorMessage,
         confirmButtonColor: '#fb7299'
       });
     }
   }
 };
+
+// 重新啟用賣場
+const handleReopenStore = async () => {
+  const result = await Swal.fire({
+    title: '確定要重新啟用賣場嗎？',
+    text: '啟用後賣場和商品會恢復上架唷！(๑˃ᴗ˂)ﻭ',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#fb7299',
+    cancelButtonColor: '#9499a0',
+    confirmButtonText: '確定啟用 ✨',
+    cancelButtonText: '取消'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      await store.reopenStore(storeId.value);
+
+      Swal.fire({
+        icon: 'success',
+        title: '賣場已重新啟用！',
+        text: '(๑˃ᴗ˂)ﻭ',
+        confirmButtonColor: '#fb7299',
+        timer: 2000
+      });
+
+      showEditModal.value = false;
+      await loadStoreData();
+
+    } catch (error: unknown) {
+      const errorMessage = (error as { message?: string })?.message || '啟用失敗';
+
+      Swal.fire({
+        icon: 'error',
+        title: '啟用失敗 (´•ω•̥`)',
+        text: errorMessage,
+        confirmButtonColor: '#fb7299'
+      });
+    }
+  }
+};
+
 </script>
 
 
@@ -1181,6 +1244,31 @@ const handleDeleteStore = async () => {
   color: #999;
   transform: none;
 }
+.status-badge.banned { background: #333; }      /* 停權 - 黑色 */
+.status-badge.closed { background: #999; }      /* 已關閉 - 灰色 */
 
+.reopen-btn {
+  padding: 12px 20px;
+  background: #52c41a;  /* 綠色 */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.reopen-btn:hover {
+  background: #73d13d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
+}
+.product-status-tag.withdrawn { background: #9499a0; }      /* 已撤回 - 灰色 */
+.product-status-tag.store-closed { background: #666; }      /* 賣場關閉 - 深灰色 */
+.product-status-tag.store-closed {
+  background: #666;
+  color: white;
+}
 
 </style>
