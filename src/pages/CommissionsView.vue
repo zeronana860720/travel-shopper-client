@@ -15,7 +15,7 @@
       <div class="filter-group">
         <h4 class="group-title">排序方式</h4>
         <select v-model="currentSort" class="styled-select">
-          <option value="">最新上架</option>
+          <option value="">報酬率：高到低</option>
           <option value="price_asc">價格：低到高</option>
           <option value="price_desc">價格：高到低</option>
           <option value="deadline_asc">截止日：近到遠</option>
@@ -68,12 +68,17 @@
             <img :src="item.imageUrl ? `http://localhost:5275${item.imageUrl}` : 'https://i.imgur.com/6VBx3io.png'"
                  alt="商品圖">
             <div class="status-tag">{{item.status}}</div>
+            <div class="fee-rate-tag">{{ calculateFeeRate(item) }}%</div>
           </div>
 
           <div class="card-body">
             <h3 class="item-name">{{ item.title }}</h3>
             <div class="info-row">
               <span class="value price">{{item?.currency}}$ {{ formatNumber(item.price) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">報酬:</span>
+              <span class="value fee">NT$ {{ formatNumber(item.fee) }} ({{ calculateFeeRate(item) }}%)</span>
             </div>
             <div class="info-row">
               <span class="value">{{ item.location || '不限地點' }}</span>
@@ -89,107 +94,100 @@
   </div>
 </template>
 
-  <script setup lang="ts" name = 'commissionsView'>
-  import {onMounted, watch} from 'vue';
-  import { useCommissionStore } from '@/stores/commission'; // 引入第二步建立的 Store
-  import {useRouter} from "vue-router";
-  import {useRoute} from "vue-router";
-  import {ref} from "vue";
+<script setup lang="ts" name ='commissionsView'>
+import {onMounted, watch} from 'vue';
+import { useCommissionStore } from '@/stores/commission';
+import {useRouter} from "vue-router";
+import {useRoute} from "vue-router";
+import {ref} from "vue";
 
-  const router = useRouter();
-  const route = useRoute();
+const router = useRouter();
+const route = useRoute();
 
-  // 變數
-  // ✨ 第一步：先把所有會用到的「變數」通通定義好 ✨
-  const searchKeyword = ref((route.query.keyword as string) || '');
-  const currentSort = ref('');
-  const filterLocations = ref<string>('');
-  const minPrice = ref<number | null>(null);
-  const maxPrice = ref<number | null>(null);
+const searchKeyword = ref((route.query.keyword as string) || '');
+const currentSort = ref('');
+const filterLocations = ref<string>('');
+const minPrice = ref<number | null>(null);
+const maxPrice = ref<number | null>(null);
 
-  // 初始化 Store
-  const commissionStore = useCommissionStore();
+const commissionStore = useCommissionStore();
 
-  // 在 script 區塊內定義地點選項
-  const locationOptions = [
-    { label: '東京', value: 'tokyo' },
-    { label: '北海道', value: 'hokkaido' },
-    { label: '京都', value: 'kyoto' },
-    { label: '大阪', value: 'osaka' }
-  ];
+const exchangeRate: { [key: string]: number } = {
+  JPY: 0.201,
+  TWD: 1,
+  USD: 32.5
+};
 
-  // 當頁面載入完成時，主動去抓取資料
-  onMounted(async () => {
-    const keyword = (route.query.keyword as string) || '';
-    // ✨ 改成傳送物件格式，與進階搜尋一致
-    await commissionStore.fetchCommissions({ keyword });
+const locationOptions = [
+  { label: '東京', value: 'tokyo' },
+  { label: '北海道', value: 'hokkaido' },
+  { label: '京都', value: 'kyoto' },
+  { label: '大阪', value: 'osaka' }
+];
+
+onMounted(async () => {
+  const keyword = (route.query.keyword as string) || '';
+  await commissionStore.fetchCommissions({ keyword });
+});
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('zh-TW');
+};
+
+const goToDetail = (code: string) => {
+  router.push(`/commissions/${code}`);
+}
+
+const formatNumber = (num:number) => {
+  if (!num) return '0';
+  return num.toLocaleString();
+};
+
+// ✨ 計算報酬率: Fee / (Price * 匯率) * 100
+const calculateFeeRate = (item: any) => {
+  if (!item.price || !item.fee) return '0.0';
+  const rate = exchangeRate[item.currency] || 1;
+  const feeRate = (item.fee / (item.price * rate)) * 100;
+  return feeRate.toFixed(1);
+};
+
+watch(() => route.query.keyword, (newKeyword) => {
+  commissionStore.fetchCommissions({
+    keyword: (newKeyword as string) || ''
   });
+});
 
-  // 定義一個簡單的日期格式化工具
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-TW');
+const resetFilters = () => {
+  searchKeyword.value = '';
+  currentSort.value = '';
+  filterLocations.value = '';
+  minPrice.value = null;
+  maxPrice.value = null;
+  handleFilterSearch();
+};
+
+const handleFilterSearch = async () => {
+  const params = {
+    keyword: searchKeyword.value,
+    location: filterLocations.value,
+    minPrice: minPrice.value,
+    maxPrice: maxPrice.value,
+    sort: currentSort.value
   };
 
-  const acceptOrder = (id: number) => {
-    alert(`接取委託 ID: ${id}`);
-  };
-
-  const goToDetail = (code: string) => {
-    router.push(`/commissions/${code}`);
-  }
-  const formatNumber = (num:number) => {
-    if (!num) return '0';
-    return num.toLocaleString(); // 會把 1000 變成 1,000
-  };
-
-  // 監聽網址參數的變化
-  // 監聽網址參數的變化
-  watch(() => route.query.keyword, (newKeyword) => {
-    // ✨ 改成傳送物件格式
-    commissionStore.fetchCommissions({
-      keyword: (newKeyword as string) || ''
-    });
-  });
-
-  // 在 resetFilters 也要記得清空陣列喔
-  const resetFilters = () => {
-    searchKeyword.value = '';
-    currentSort.value = '';
-    filterLocations.value = ''; // 清空陣列
-    minPrice.value = null;
-    maxPrice.value = null;
-    handleFilterSearch();
-  };
-
-  // 3. 修改搜尋邏輯：直接帶入字串
-  const handleFilterSearch = async () => {
-    const params = {
-      keyword: searchKeyword.value,
-      location: filterLocations.value, // 直接傳送 'tokyo', 'osaka' 等字串
-      minPrice: minPrice.value,
-      maxPrice: maxPrice.value,
-      sort: currentSort.value
-    };
-
-    await commissionStore.fetchCommissions(params);
-  };
-  </script>
+  await commissionStore.fetchCommissions(params);
+};
+</script>
 
 <style scoped>
-/* --- 1. 頁面整體佈局 --- */
 .commissions-page {
-  /* 增加寬度以容納側邊欄與四格卡片 */
   max-width: 98%;
   margin: 110px auto 40px;
   padding: 0 10px;
-  /* 使用 flex 讓側邊欄與主內容並排 */
   display: flex;
   gap: 30px;
-
-  //min-height: 200vh;
 }
 
-/* --- 2. 側邊篩選欄 (蝦皮風格) --- */
 .filter-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -197,16 +195,11 @@
   padding: 24px;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-
-  /* ✨ 核心修改：固定在頁面上 */
   position: sticky;
-  top: 120px;       /* 100px(Navbar) + 20px(預留間距) */
-
-  /* ✨ 增加安全性：防止篩選欄太長超出螢幕 */
+  top: 120px;
   max-height: calc(100vh - 140px);
-  overflow-y: auto; /* 如果內容太多會出現內部捲軸 */
-
-  align-self: flex-start; /* 確保 flex 佈局下它不會被拉長 */
+  overflow-y: auto;
+  align-self: flex-start;
 }
 
 .filter-header {
@@ -232,7 +225,6 @@
   font-weight: 600;
 }
 
-/* 清單與勾選框 */
 .filter-list {
   list-style: none;
   padding: 0;
@@ -253,13 +245,14 @@
 
 .checkbox-container input {
   margin-right: 10px;
+  cursor: pointer;
+  accent-color: #fb7299;
 }
 
 .checkbox-container:hover {
   color: #fb7299;
 }
 
-/* 價格輸入區 */
 .price-range-inputs {
   display: flex;
   align-items: center;
@@ -306,7 +299,6 @@
   margin-top: 10px;
 }
 
-/* --- 3. 右側主內容區 --- */
 .main-list {
   flex: 1;
 }
@@ -316,7 +308,7 @@
   border-left: 6px solid #fb7299;
   padding-left: 15px;
   display: flex;
-  flex-direction: column; /* 讓標題跟數量垂直排列 */
+  flex-direction: column;
   align-items: flex-start;
 }
 
@@ -330,10 +322,8 @@
   margin-top: 5px;
 }
 
-/* --- 4. 一排四個的 Grid --- */
 .commission-grid {
   display: grid;
-  /* 強制固定為四欄 */
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
@@ -352,7 +342,7 @@
 }
 
 .card-image {
-  height: 160px; /* 縮小一點高度以符合四格佈局 */
+  height: 160px;
   position: relative;
 }
 
@@ -371,6 +361,19 @@
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 11px;
+}
+
+.fee-rate-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #fb7299;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .card-body {
@@ -396,10 +399,22 @@
   color: #666;
 }
 
+.info-row .label {
+  font-size: 13px;
+  color: #999;
+  margin-right: 5px;
+}
+
 .price {
   color: #fb7299;
   font-weight: bold;
   font-size: 16px;
+}
+
+.fee {
+  color: #fb7299;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .accept-btn {
@@ -434,7 +449,7 @@
   border-color: #fb7299;
   background-color: white;
 }
-/* 修改：下拉選單樣式 */
+
 .styled-select {
   width: 100%;
   padding: 10px;
@@ -449,28 +464,7 @@
 .search-input-wrapper {
   width: 100%;
   display: flex;
-  justify-content: center; /* 水平置中 */
-  padding: 2px; /* 給一點點呼吸空間 */
-}
-
-.side-search-input {
-  width: 100%; /* 確保填滿容器 */
-  /* 其他樣式維持妳原本的 ... */
-}
-
-/* 讓 checkbox 看起來更精緻 */
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
-}
-
-.checkbox-container input {
-  cursor: pointer;
-  accent-color: #fb7299; /* 讓打勾勾變成妳最愛的粉紅色！ */
+  justify-content: center;
+  padding: 2px;
 }
 </style>
