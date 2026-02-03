@@ -72,6 +72,11 @@ const routes:RouteRecordRaw[] = [
         redirect: '/user/profile', // 當使用者輸入 /user 時自動導向
         children: [
             {
+                path:'history',
+                name:'History',
+                component:()=>import('../pages/user/History.vue')
+            },
+            {
                 path: 'profile', // 網址：/user/profile
                 name: 'UserProfile',
                 component: () => import('../pages/user/ProfileView.vue'),

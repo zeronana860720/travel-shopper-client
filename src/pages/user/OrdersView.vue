@@ -228,7 +228,7 @@ const onFileSelected = async (event: Event) => {
     }
   } catch (error: any) {
     console.error('上傳失敗 Q_Q：', error);
-    alert('上傳失敗：' + (error.response?.data?.message || '伺服器開小差了'));
+    alert('上傳失敗：' + (error.response?.data?.message || ''));
   } finally {
     // 清空輸入框，這樣選同一個檔案也能再次觸發上傳喔！
     target.value = '';

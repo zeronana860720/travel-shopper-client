@@ -26,6 +26,10 @@
             <i class="icon-dot"></i>
             <span class="menu-text">委託管理</span>
           </router-link>
+          <router-link to="/user/history" class="menu-item">
+            <i class="icon-dot"></i>
+            <span class="menu-text">歷史紀錄</span>
+          </router-link>
 
           <router-link to="/user/shops" class="menu-item">
             <i class="icon-dot"></i>
