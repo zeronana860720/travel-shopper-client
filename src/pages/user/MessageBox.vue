@@ -89,12 +89,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted ,nextTick} from 'vue';
 import { useChatStore } from '@/stores/chatStores';
 import axios from 'axios';
 
 const chatStore = useChatStore();
 const API_URL = 'http://localhost:5275/api';  // 改成你的後端網址
+const messagesArea = ref<HTMLElement | null>(null);
 
 interface Contact {
   chatRoomId: string;
@@ -116,6 +117,7 @@ interface Message {
 
 // 取得當前使用者 ID
 const currentUserId = localStorage.getItem('userId') || '';
+console.log('我是誰 (Local):', currentUserId); // 👈 看看這裡印出什麼
 
 // 聯絡人列表
 const contacts = ref<Contact[]>([]);
@@ -132,6 +134,21 @@ const currentMessages = computed(() => {
   if (!selectedContact.value) return [];
   return messagesData.value[selectedContact.value.chatRoomId] || [];
 });
+const scrollToBottom = () => {
+  // 1. 先等 Vue 更新 DOM
+  nextTick(() => {
+    // 2. 再給瀏覽器一點點時間 (100毫秒)，確保圖片都撐開了
+    setTimeout(() => {
+      if (messagesArea.value) {
+        // 3. 使用平滑捲動效果
+        messagesArea.value.scrollTo({
+          top: messagesArea.value.scrollHeight,
+          behavior: 'smooth' // 讓它滑~~下去，而不是瞬間跳下去
+        });
+      }
+    }, 100);
+  });
+};
 
 // 從後端取得聊天室列表
 const fetchChatRooms = async () => {
@@ -140,7 +157,11 @@ const fetchChatRooms = async () => {
     const response = await axios.get(`${API_URL}/Chat/rooms`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if(response.data.length > 0) {
+      console.log('訊息發送者 (API):', response.data[0].senderUserId);
+    }
     console.log('API Response:', response.data);
+
 
     // --- 修改開始 ---
     // 將後端資料轉換成前端格式
@@ -184,7 +205,8 @@ const fetchMessages = async (chatRoomId: string) => {
       id: msg.id,
       text: msg.message,
       time: new Date(msg.createdAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
-      isSelf: msg.senderUserId === currentUserId,
+      // isSelf: msg.senderUserId === currentUserId,
+      isSelf: String(msg.senderUserId) === String(currentUserId),
       senderUserId: msg.senderUserId // 擴充用-> 未來群組聊天使用
     }));
   } catch (error) {
@@ -204,6 +226,7 @@ const selectContact = async (contact: Contact) => {
   await fetchMessages(contact.chatRoomId);
   // 也要告訴後端已讀
   await chatStore.markAsRead(contact.chatRoomId);
+  scrollToBottom()
 };
 
 // 發送訊息
@@ -219,6 +242,7 @@ const sendMessage = async () => {
   try {
     await chatStore.sendMessage(chatRoomId, messageText);
     newMessage.value = ''; // 發送成功後清空輸入框
+    scrollToBottom()
   } catch (error) {
     console.error('發送失敗:', error);
   }
@@ -234,7 +258,8 @@ const handleReceiveMessage = (data: any) => {
     id: data.id,
     text: data.message,
     time: new Date(data.createdAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
-    isSelf: data.senderUserId === currentUserId,
+    isSelf: String(data.senderUserId) === String(currentUserId),
+
     senderUserId: data.senderUserId
   };
 
@@ -248,6 +273,7 @@ const handleReceiveMessage = (data: any) => {
   const exists = messagesData.value[data.chatRoomId].some(m => m.id === data.id);
   if (!exists) {
     messagesData.value[data.chatRoomId].push(newMsg);
+    scrollToBottom()
   }
 
   // 5. 更新左側列表最新訊息跟最新訊息時間
@@ -452,6 +478,7 @@ onUnmounted(async () => {
 
 .messages-area {
   flex: 1;
+  min-height: 0;
   padding: 20px;
   overflow-y: auto;
   background: #f8f9fa;

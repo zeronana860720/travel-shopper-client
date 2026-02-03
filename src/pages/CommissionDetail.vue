@@ -54,7 +54,7 @@
       </div>
 
       <div class="action-buttons">
-        <button class="add-cart">傳送訊息</button>
+        <button class="add-cart" @click="handleSendMessage">傳送訊息</button>
         <button class="buy-now" @click="handleAccept">確認接取委託</button>
       </div>
 
@@ -83,11 +83,15 @@
 import {nextTick, onMounted, ref} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCommissionStore } from '@/stores/commission'
+import {useChatStore} from "@/stores/chatStores";
+import {useAuthStore} from "@/stores/auth";
 
 
 const route = useRoute()
 const router = useRouter()
 const commissionStore = useCommissionStore()
+const chatStore  = useChatStore()
+const authStore = useAuthStore()
 
 // 使用 ref 建立地圖掛載點
 const mapContainer = ref<HTMLElement | null>(null)
@@ -125,6 +129,41 @@ const initMap = () => {
     animation: window.google.maps.Animation.DROP // 增加標記掉落動畫
   });
 };
+
+const handleSendMessage = async () => {
+  const commission = commissionStore.currentCommission;
+
+  // 1. 基本檢查
+  if (!commission || !commission.creatorId) return;
+
+  // 2. 檢查登入狀態
+  if (!authStore.userId) { // 假設 id 存放在 authStore.user.id
+    alert('請先登入才能傳送訊息喔！');
+    // router.push('/login'); // 可以選擇要不要導向登入頁
+    return;
+  }
+
+  // 3. 檢查是不是自己 (目前登入者 ID vs 委託建立者 ID)
+  if (authStore.userId === commission.creatorId) {
+    alert('這是你自己建立的委託，不能傳訊息給自己喔！(・∀・)');
+    return;
+  }
+
+  try {
+    // 4. 呼叫 Store 建立/取得聊天室
+    // 這裡會把對方的 ID (creatorId) 傳給後端
+    const result = await chatStore.createChatRoom(commission.creatorId);
+
+    if (result && result.chatRoomId) {
+      // 5. 成功拿到 ID 後，跳轉到聊天室頁面
+      // 假設你的路由是 /chat/:id
+      router.push(`/chat/${result.chatRoomId}`);
+    }
+  } catch (error) {
+    console.error(error);
+    alert('開啟聊天室失敗，請稍後再試 > <');
+  }
+}
 
 onMounted(async () => {
   // 1. 從網址取得 ServiceCode (雖然路由參數名是 :id，但裡面存的是字串)

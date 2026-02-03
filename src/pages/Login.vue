@@ -48,36 +48,52 @@ const form = ref({
 const handleLogin2 = async() => {
   loading.value = true
   try {
-    console.log('發送登入請求:', form.value)
-
     const res = await api.post('/api/Auth/login', form.value)
 
-    // console.log('完整後端回應:', JSON.stringify(res.data, null, 2));
-    // console.log('res.data.userId:', res.data.userId);
-    // console.log('res.data.Uid:', res.data.Uid);
-    // 確保 balance 有值（防禦性編程）
-    // 如果有就賦值 沒有就給0
-    const balance = res.data.balance ?? 0
-    console.log(res.data)
+    // 🛑 偵探時間：讓我們看看後端到底回傳了什麼！
+    console.log('====== 登入除錯開始 ======');
+    console.log('1. res.data (完整):', res.data);
+    console.log('2. res.data.userId 型別:', typeof res.data.userId);
+    console.log('3. res.data.userId 內容:', res.data.userId);
+    console.log('4. res.data.Uid:', res.data.Uid); // 有時候是叫 Uid?
+    console.log('5. res.data.id:', res.data.id);   // 有時候是叫 id?
+    console.log('=========================');
 
+    // ✨ 嘗試找出真正的 ID (這裡我們先不要急著 String(), 先看 log)
+    // 假設我們發現 userId 其實是一個物件，裡面還有 id
+    // 例如: res.data.userId = { id: "u001", name: "..." }
+    let realId = "";
+
+    if (typeof res.data.userId === 'object' && res.data.userId !== null) {
+      // 如果它真的是物件，我們嘗試去抓裡面的 id
+      realId = res.data.userId.id || res.data.userId.Id || res.data.userId.userId;
+    } else {
+      // 否則就照舊找
+      realId = res.data.userId || res.data.UserId || res.data.id || res.data.Uid;
+    }
+
+    // 強制轉成字串，防禦 [object Object]
+    const finalIdString = String(realId || "");
+
+    console.log('🎯 最終抓到的 ID (將存入):', finalIdString);
+
+    const balance = res.data.balance ?? 0
+
+    // 呼叫 Store
     authStore.login(
         res.data.token,
         res.data.name,
         res.data.avatar,
         balance,
-        res.data.userId,
+        finalIdString, // 👈 傳入處理過的字串
     )
-    console.log('後端物件',JSON.stringify(res.data, null, 2))
-    // alert(`歡迎回來，${res.data.name}！`)
-    // alert 太醜了
+
     await router.push('/products')
   }
   catch (err: any) {
-    console.error('登入失敗')
-    console.error('完整錯誤:', err)
-
-    const errorMsg = err.response?.data || err.message || '帳號或密碼錯誤'
-    alert('登入失敗: ' + errorMsg)
+    // ... (錯誤處理保持原樣)
+    console.error(err)
+    alert('登入失敗')
   } finally {
     loading.value = false
   }

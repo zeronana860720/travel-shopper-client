@@ -5,23 +5,27 @@ export const useAuthStore = defineStore('auth', () => {
     // 直接從 localStorage 初始化，避免初次渲染為 0
     const token = ref(localStorage.getItem('token') || '')
     const userName = ref(localStorage.getItem('userName') || '')
+    const userId = ref(localStorage.getItem('userId') || '')
 
     // 修正點：直接在這裡初始化 balance
     const balance = ref<number>(Number(localStorage.getItem('balance')) || 0)
 
     const isLoggedIn = computed(() => !!token.value)
 
-    function login(newToken: string, name: string, avatarUrl: string, userBalance: number,userId:string) {
+    function login(newToken: string, name: string, avatarUrl: string, userBalance: number, newUserId: string) {
         token.value = newToken
         userName.value = name
-        balance.value = Number(userBalance)||0
+        balance.value = Number(userBalance) || 0
+        userId.value = newUserId
 
         localStorage.setItem('token', newToken)
         localStorage.setItem('userName', name)
         localStorage.setItem('userAvatar', avatarUrl || '')
-        // 確保存入的是字串
         localStorage.setItem('balance', userBalance.toString())
-        localStorage.setItem('userId', userId.toString())
+
+        // ✨✨✨ 修正重點在這裡！ ✨✨✨
+        // 直接存入傳進來的字串 (newUserId)，不要用 userId.toString()
+        localStorage.setItem('userId', newUserId)
     }
 
     function logout() {
@@ -38,5 +42,5 @@ export const useAuthStore = defineStore('auth', () => {
         // balance.value = res.data.balance
     }
 
-    return { token, userName, isLoggedIn, login, logout, balance, refreshBalance }
+    return { token, userName, isLoggedIn, login, logout, balance, refreshBalance ,userId}
 })

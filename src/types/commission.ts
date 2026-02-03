@@ -23,4 +23,5 @@ export interface Commission {
     currency: string;
     reason:string;
     endAt?: string;
+    creatorId:string;
 }
