@@ -1,12 +1,12 @@
 <template>
   <div class="checkout-container" v-if="product">
-    <h2 class="page-title">確認結帳 ✨</h2>
+    <h2 class="page-title">確認結帳 </h2>
 
     <div class="checkout-layout">
       <!-- 左側:收件資訊 -->
       <div class="info-section">
         <div class="card">
-          <h3><i class="icon">📦</i> 收件資訊</h3>
+          <h3><i class="icon"></i> 收件資訊</h3>
           <div class="form-group">
             <label>收件人姓名 <span class="required">*</span></label>
             <input
@@ -45,16 +45,16 @@
         </div>
 
         <div class="card">
-          <h3><i class="icon">💳</i> 付款方式</h3>
+          <h3><i class="icon"></i> 付款方式</h3>
           <div class="payment-options">
             <label class="radio-label" :class="{ 'active': form.payment === 'credit' }">
               <input type="radio" value="credit" v-model="form.payment">
-              <span class="radio-text">💳 信用卡</span>
+              <span class="radio-text">錢包餘額</span>
             </label>
-            <label class="radio-label" :class="{ 'active': form.payment === 'cod' }">
-              <input type="radio" value="cod" v-model="form.payment">
-              <span class="radio-text">🚚 貨到付款</span>
-            </label>
+<!--            <label class="radio-label" :class="{ 'active': form.payment === 'cod' }">-->
+<!--              <input type="radio" value="cod" v-model="form.payment">-->
+<!--              <span class="radio-text">🚚 貨到付款</span>-->
+<!--            </label>-->
           </div>
         </div>
       </div>
@@ -216,6 +216,8 @@ const submitOrder = async () => {
 
     await storeStore.createOrder({
       storeId: product.value.storeId,
+      productId:product.value.id,
+      quantity:product.value.quantity,
       totalAmount: totalPrice.value,
       receiverName: form.value.receiverName,
       receiverPhone: form.value.receiverPhone,

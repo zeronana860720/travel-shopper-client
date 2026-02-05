@@ -26,6 +26,10 @@
             <i class="icon-dot"></i>
             <span class="menu-text">委託管理</span>
           </router-link>
+          <router-link to="/user/buyer-order" class="menu-item">
+            <i class="icon-dot"></i>
+            <span class="menu-text">賣場買的東西</span>
+          </router-link>
           <router-link to="/user/history" class="menu-item">
             <i class="icon-dot"></i>
             <span class="menu-text">歷史紀錄</span>
@@ -80,7 +84,7 @@
                 <i class="icon-dot"></i>
                 <span class="menu-text">委託訂單</span>
               </router-link>
-              <router-link to="/user/walletLogs" class="menu-item sub-menu-item">
+              <router-link to="/user/store-order" class="menu-item sub-menu-item">
                 <i class="icon-dot"></i>
                 <span class="menu-text">賣場訂單</span>
               </router-link>

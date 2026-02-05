@@ -132,6 +132,16 @@ const routes:RouteRecordRaw[] = [
                 path:'center-view',
                 name:'CenterView',
                 component:()=>import('../pages/user/center.vue')
+            },
+            {
+                path:'store-order',
+                name:'StoreOrder',
+                component:()=>import('../pages/user/StoreOrder.vue')
+            },
+            {
+                path:'buyer-order',
+                name:'BuyerOrder',
+                component:()=>import('../pages/user/BuyerOrders.vue')
             }
 
         ]

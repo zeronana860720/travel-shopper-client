@@ -16,6 +16,8 @@ interface StoreItem {
 export const useStoreStore = defineStore('store', {
     state: () => ({
         stores: [] as StoreItem[],
+        sellerOrders: [] as any[],
+        buyerOrders: [] as any[],
         loading: false
     }),
 
@@ -401,10 +403,13 @@ export const useStoreStore = defineStore('store', {
         // 建立訂單 (需要登入)
         async createOrder(orderData: {
             storeId: number;
+            productId: number;
+            quantity: number;
             totalAmount: number;
             receiverName: string;
             receiverPhone: string;
             shippingAddress: string;
+
         }) {
             try {
                 const token = localStorage.getItem('token');
@@ -427,6 +432,113 @@ export const useStoreStore = defineStore('store', {
                 return response.data;
             } catch (error: any) {
                 throw error.response?.data || { message: '訂單建立失敗' };
+            }
+        },
+        // ==========================================
+        // ✨ 新增區塊: 賣家訂單管理功能
+        // ==========================================
+
+        // 1. 取得賣家收到的所有訂單
+        async fetchSellerOrders() {
+            this.loading = true;
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) return; // 如果沒登入就不用抓了
+
+                const response = await axios.get(
+                    'http://127.0.0.1:5275/api/createstore/my/orders',
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                // 把抓回來的資料存進 State
+                this.sellerOrders = response.data;
+
+                return response.data;
+            } catch (error: any) {
+                console.error('抓取賣家訂單失敗:', error);
+                // 這裡我們不 throw error，因為可能是剛好沒訂單，不影響頁面運作
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 2. 執行出貨
+        async shipOrder(orderId: number, shipData: { LogisticsName: string, TrackingNumber: string }) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                // 呼叫出貨 API
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/createstore/orders/${orderId}/ship`,
+                    shipData,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '出貨失敗' };
+            }
+        },
+
+        // ==========================================
+        // ✨ 新增區塊: 買家訂單功能 (我的購買清單)
+        // ==========================================
+
+        // 1. 取得買家自己的購買清單
+        async fetchBuyerOrders() {
+            this.loading = true;
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) return;
+
+                const response = await axios.get(
+                    'http://127.0.0.1:5275/api/createstore/my/purchases',
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                // 存入 State
+                this.buyerOrders = response.data;
+
+                return response.data;
+            } catch (error: any) {
+                console.error('抓取買家訂單失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 2. 買家完成訂單 (確認收貨)
+        async completeOrder(orderId: number) {
+            try {
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    return Promise.reject({ message: '請先登入' });
+                }
+
+                const response = await axios.post(
+                    `http://127.0.0.1:5275/api/createstore/orders/${orderId}/complete`,
+                    {}, // POST 請求 body 為空
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                return response.data;
+            } catch (error: any) {
+                throw error.response?.data || { message: '操作失敗' };
             }
         }
 
