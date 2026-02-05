@@ -6,9 +6,25 @@
       </div>
 
       <div class="filter-group">
-        <h4 class="group-title">關鍵字搜尋</h4>
-        <div class="search-input-wrapper">
-          <input type="text" v-model="searchKeyword" placeholder="搜尋標題、內容..." class="side-search-input">
+        <h4 class="group-title">熱門地點</h4>
+        <div class="location-tags">
+          <button
+              class="location-tag"
+              :class="{ active: filterLocations === '' }"
+              @click="selectLocation('')"
+          >
+            全部
+          </button>
+
+          <button
+              v-for="loc in locationOptions"
+              :key="loc.label"
+              class="location-tag"
+              :class="{ active: filterLocations === loc.value }"
+              @click="selectLocation(loc.value)"
+          >
+            {{ loc.label }}
+          </button>
         </div>
       </div>
 
@@ -94,56 +110,57 @@
   </div>
 </template>
 
-<script setup lang="ts" name ='commissionsView'>
-import {onMounted, watch} from 'vue';
+<script setup lang="ts" name="commissionsView">
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useCommissionStore } from '@/stores/commission';
-import {useRouter} from "vue-router";
-import {useRoute} from "vue-router";
-import {ref} from "vue";
 
 const router = useRouter();
 const route = useRoute();
+const commissionStore = useCommissionStore();
 
+// --- 狀態變數 ---
 const searchKeyword = ref((route.query.keyword as string) || '');
 const currentSort = ref('');
-const filterLocations = ref<string>('');
+const filterLocations = ref<string>(''); // 這裡存的是 "tokyo,東京" 這樣的字串
 const minPrice = ref<number | null>(null);
 const maxPrice = ref<number | null>(null);
 
-const commissionStore = useCommissionStore();
-
+// --- 匯率設定 (計算顯示用) ---
 const exchangeRate: { [key: string]: number } = {
   JPY: 0.201,
   TWD: 1,
   USD: 32.5
 };
 
+// --- ✨ 修改: 地點選項 (Value 改成中英文並存) ---
 const locationOptions = [
-  { label: '東京', value: 'tokyo' },
-  { label: '北海道', value: 'hokkaido' },
-  { label: '京都', value: 'kyoto' },
-  { label: '大阪', value: 'osaka' }
+  { label: '東京', value: 'tokyo,東京' },
+  { label: '北海道', value: 'hokkaido,北海道' },
+  { label: '京都', value: 'kyoto,京都' },
+  { label: '大阪', value: 'osaka,大阪' }
 ];
 
+// --- 初始化 ---
 onMounted(async () => {
   const keyword = (route.query.keyword as string) || '';
-  await commissionStore.fetchCommissions({ keyword });
+  // 初始載入時，如果有網址參數就帶入
+  searchKeyword.value = keyword;
+
+  await handleFilterSearch();
 });
 
+// --- 格式化工具 ---
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('zh-TW');
 };
 
-const goToDetail = (code: string) => {
-  router.push(`/commissions/${code}`);
-}
-
-const formatNumber = (num:number) => {
+const formatNumber = (num: number) => {
   if (!num) return '0';
   return num.toLocaleString();
 };
 
-// ✨ 計算報酬率: Fee / (Price * 匯率) * 100
+// 計算報酬率: Fee / (Price * 匯率) * 100
 const calculateFeeRate = (item: any) => {
   if (!item.price || !item.fee) return '0.0';
   const rate = exchangeRate[item.currency] || 1;
@@ -151,25 +168,48 @@ const calculateFeeRate = (item: any) => {
   return feeRate.toFixed(1);
 };
 
+// 跳轉詳情頁
+const goToDetail = (code: string) => {
+  router.push(`/commissions/${code}`);
+};
+
+// --- 監聽網址變化 (支援瀏覽器上一頁/下一頁) ---
 watch(() => route.query.keyword, (newKeyword) => {
-  commissionStore.fetchCommissions({
-    keyword: (newKeyword as string) || ''
-  });
+  searchKeyword.value = (newKeyword as string) || '';
+  handleFilterSearch();
 });
 
-const resetFilters = () => {
-  searchKeyword.value = '';
-  currentSort.value = '';
-  filterLocations.value = '';
-  minPrice.value = null;
-  maxPrice.value = null;
+// --- ✨ 修改: 選擇地點邏輯 ---
+const selectLocation = (val: string) => {
+  // 邏輯: 如果點擊的是「目前已選中」的，就取消選取 (變回空字串)
+  // 如果點擊的是「全部」，傳進來的 val 會是 ''，也符合這個邏輯
+  if (filterLocations.value === val && val !== '') {
+    filterLocations.value = '';
+  } else {
+    filterLocations.value = val;
+  }
+
+  // 🔥 重點: 點擊後立即觸發搜尋，不用再按按鈕
   handleFilterSearch();
 };
 
+// --- 清空篩選條件 ---
+const resetFilters = () => {
+  searchKeyword.value = '';
+  currentSort.value = '';
+  filterLocations.value = ''; // 清空地點
+  minPrice.value = null;
+  maxPrice.value = null;
+
+  // 清空後馬上重新搜尋
+  handleFilterSearch();
+};
+
+// --- 執行搜尋 (呼叫 Store) ---
 const handleFilterSearch = async () => {
   const params = {
     keyword: searchKeyword.value,
-    location: filterLocations.value,
+    location: filterLocations.value, // 這裡會送出 "osaka,大阪" 或是 ""
     minPrice: minPrice.value,
     maxPrice: maxPrice.value,
     sort: currentSort.value
@@ -466,5 +506,40 @@ const handleFilterSearch = async () => {
   display: flex;
   justify-content: center;
   padding: 2px;
+}
+
+/* ✨ 新增：地點標籤容器 */
+.location-tags {
+  display: flex;
+  flex-wrap: wrap; /* 超過寬度自動換行 */
+  gap: 8px;        /* 按鈕之間的間距 */
+}
+
+/* ✨ 新增：標籤按鈕樣式 */
+.location-tag {
+  padding: 6px 14px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  border-radius: 20px; /* 圓角看起來比較親切 */
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* 滑鼠移過去的效果 */
+.location-tag:hover {
+  border-color: #fb7299;
+  color: #fb7299;
+  background-color: #fff0f5;
+}
+
+/* ✨ 被選中時的樣式 (Active) */
+.location-tag.active {
+  background-color: #fb7299;
+  color: white;
+  border-color: #fb7299;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(251, 114, 153, 0.3);
 }
 </style>

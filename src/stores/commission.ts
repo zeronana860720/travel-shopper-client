@@ -28,6 +28,7 @@ export const useCommissionStore = defineStore('commission', {
                     params: searchParams
                 });
                 this.commissions = response.data.data;
+                console.log(response.data.data);
             } catch (error) {
                 console.error('篩選委託失敗:', error);
             } finally {
