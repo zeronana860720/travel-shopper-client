@@ -6,6 +6,19 @@
       </div>
 
       <div class="filter-group">
+        <h4 class="group-title">關鍵字搜尋</h4>
+        <div class="search-input-wrapper">
+          <input
+              type="text"
+              v-model="searchKeyword"
+              placeholder="搜尋標題、內容..."
+              class="side-search-input"
+              @keyup.enter="handleFilterSearch"
+          >
+        </div>
+      </div>
+
+      <div class="filter-group">
         <h4 class="group-title">熱門地點</h4>
         <div class="location-tags">
           <button
@@ -30,30 +43,12 @@
 
       <div class="filter-group">
         <h4 class="group-title">排序方式</h4>
-        <select v-model="currentSort" class="styled-select">
+        <select v-model="currentSort" class="styled-select" @change="handleFilterSearch">
           <option value="">報酬率：高到低</option>
           <option value="price_asc">價格：低到高</option>
           <option value="price_desc">價格：高到低</option>
           <option value="deadline_asc">截止日：近到遠</option>
         </select>
-      </div>
-
-      <div class="filter-group">
-        <h4 class="group-title">熱門地點</h4>
-        <ul class="filter-list">
-          <li v-for="loc in locationOptions" :key="loc.value" class="filter-item">
-            <label class="checkbox-container">
-              <input
-                  type="radio"
-                  name="location-group"
-                  :value="loc.value"
-                  v-model="filterLocations"
-              >
-              <span class="checkmark"></span>
-              {{ loc.label }}
-            </label>
-          </li>
-        </ul>
       </div>
 
       <div class="filter-group">
