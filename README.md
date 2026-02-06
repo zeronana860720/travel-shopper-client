@@ -67,11 +67,6 @@ cp .env.example .env
 npm run dev
 ```
 
-5. **建置生產版本**
-```sh
-npm run build
-```
-
 ## 📁 專案結構
 ```
 travel-shopper-frontend/
